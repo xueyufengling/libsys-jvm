@@ -1,0 +1,2585 @@
+package sys.jvm;
+
+import java.lang.invoke.MethodHandle;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.security.ProtectionDomain;
+
+import sys.jvm.hotspot.classfile.java_lang_Class;
+import sys.jvm.hotspot.oops.InstanceKlass;
+import sys.jvm.hotspot.oops.Klass;
+import sys.jvm.hotspot.oops.InstanceKlass.ClassState;
+import sys.jvm.hotspot.utilities.AccessFlags;
+import sys.jvm.memory.pointer_type;
+import sys.jvm.type.cxx_type;
+import sys.jvm.type.java_type;
+import sys.jvm.type.cxx_type.pointer;
+
+/**
+ * jdk.internal.misc.Unsafe的相关操作。 无空指针及参数检查，需要自行确保参数正确性确保不会引发JVM崩溃 注：对于final修饰的变量，基本类型和String会内联，因此修改变量内存无效
+ */
+public final class unsafe
+{
+	private static Class<?> jdk_internal_misc_Unsafe;
+	static Object instance_jdk_internal_misc_Unsafe;
+
+	private static MethodHandle objectFieldOffset0;// 没有检查的jdk.internal.misc.Unsafe.objectFieldOffset()
+	private static MethodHandle objectFieldOffset1;
+	private static MethodHandle staticFieldBase0;
+	private static MethodHandle staticFieldOffset0;
+
+	private static MethodHandle getAddress;
+	private static MethodHandle putAddress;
+	private static MethodHandle addressSize;
+	private static MethodHandle getUncompressedObject;
+	private static MethodHandle allocateMemory0;
+	private static MethodHandle freeMemory0;
+	private static MethodHandle setMemory0;
+	private static MethodHandle copyMemory0;
+
+	private static MethodHandle defineClass;
+	private static MethodHandle allocateInstance;
+
+	private static MethodHandle arrayBaseOffset0;
+	private static MethodHandle arrayIndexScale0;
+
+	private static MethodHandle putReference;
+	private static MethodHandle getReference;
+
+	private static MethodHandle putByte;
+	private static MethodHandle getByte;
+
+	private static MethodHandle putChar;
+	private static MethodHandle getChar;
+
+	private static MethodHandle putBoolean;
+	private static MethodHandle getBoolean;
+
+	private static MethodHandle putShort;
+	private static MethodHandle getShort;
+
+	private static MethodHandle putInt;
+	private static MethodHandle getInt;
+
+	private static MethodHandle putLong;
+	private static MethodHandle getLong;
+
+	private static MethodHandle putDouble;
+	private static MethodHandle getDouble;
+
+	private static MethodHandle putFloat;
+	private static MethodHandle getFloat;
+
+	// cmpxchg & cas
+	private static MethodHandle compareAndSetReference;
+	private static MethodHandle compareAndExchangeReference;
+
+	private static MethodHandle compareAndSetByte;
+	private static MethodHandle compareAndExchangeByte;
+
+	private static MethodHandle compareAndSetChar;
+	private static MethodHandle compareAndExchangeChar;
+
+	private static MethodHandle compareAndSetBoolean;
+	private static MethodHandle compareAndExchangeBoolean;
+
+	private static MethodHandle compareAndSetShort;
+	private static MethodHandle compareAndExchangeShort;
+
+	private static MethodHandle compareAndSetInt;
+	private static MethodHandle compareAndExchangeInt;
+
+	private static MethodHandle compareAndSetLong;
+	private static MethodHandle compareAndExchangeLong;
+
+	private static MethodHandle compareAndSetDouble;
+	private static MethodHandle compareAndExchangeDouble;
+
+	private static MethodHandle compareAndSetFloat;
+	private static MethodHandle compareAndExchangeFloat;
+
+	private static MethodHandle loadFence;
+	private static MethodHandle storeFence;
+	private static MethodHandle fullFence;
+	private static MethodHandle loadLoadFence;
+	private static MethodHandle storeStoreFence;
+
+	private static MethodHandle shouldBeInitialized0;
+	private static MethodHandle ensureClassInitialized0;
+
+	public static final int address_size;
+
+	public static final int array_object_base_offset;
+	public static final int array_object_index_scale;
+
+	public static final int array_byte_base_offset;
+	public static final int array_byte_index_scale;
+
+	public static final int array_long_base_offset;
+	public static final int array_long_index_scale;
+
+	/**
+	 * OOP大小，只会是4或8.<br>
+	 * 32位JVM和开启压缩OOP的64位JVM上为4，未开启压缩OOP的64位JVM上为8.<br>
+	 */
+	public static final long oop_size;
+
+	static
+	{
+		try
+		{
+			jdk_internal_misc_Unsafe = Class.forName("jdk.internal.misc.Unsafe");
+			instance_jdk_internal_misc_Unsafe = symbols.find_static_var(jdk_internal_misc_Unsafe, "theUnsafe", jdk_internal_misc_Unsafe).get();
+		}
+		catch (Throwable ex)
+		{
+			ex.printStackTrace();
+		}
+		if (instance_jdk_internal_misc_Unsafe == null)
+			throw new java.lang.InternalError("retrieve jdk.internal.misc.Unsafe instance failed");
+
+		objectFieldOffset0 = symbols.find_special_method(jdk_internal_misc_Unsafe, "objectFieldOffset0", long.class, Field.class);
+		objectFieldOffset1 = symbols.find_special_method(jdk_internal_misc_Unsafe, "objectFieldOffset1", long.class, Class.class, String.class);
+		staticFieldBase0 = symbols.find_special_method(jdk_internal_misc_Unsafe, "staticFieldBase0", Object.class, Field.class);
+		staticFieldOffset0 = symbols.find_special_method(jdk_internal_misc_Unsafe, "staticFieldOffset0", long.class, Field.class);
+
+		getAddress = symbols.find_special_method(jdk_internal_misc_Unsafe, "getAddress", long.class, Object.class, long.class);
+		putAddress = symbols.find_special_method(jdk_internal_misc_Unsafe, "putAddress", void.class, Object.class, long.class, long.class);
+		addressSize = symbols.find_special_method(jdk_internal_misc_Unsafe, "addressSize", int.class);
+		getUncompressedObject = symbols.find_special_method(jdk_internal_misc_Unsafe, "getUncompressedObject", Object.class, long.class);
+		allocateMemory0 = symbols.find_special_method(jdk_internal_misc_Unsafe, "allocateMemory0", long.class, long.class);
+		freeMemory0 = symbols.find_special_method(jdk_internal_misc_Unsafe, "freeMemory0", void.class, long.class);
+		setMemory0 = symbols.find_special_method(jdk_internal_misc_Unsafe, "setMemory0", void.class, Object.class, long.class, long.class, byte.class);
+		copyMemory0 = symbols.find_special_method(jdk_internal_misc_Unsafe, "copyMemory0", void.class, Object.class, long.class, Object.class, long.class, long.class);
+
+		defineClass = symbols.find_special_method(jdk_internal_misc_Unsafe, "defineClass", Class.class, String.class, byte[].class, int.class, int.class, ClassLoader.class, ProtectionDomain.class);
+		allocateInstance = symbols.find_special_method(jdk_internal_misc_Unsafe, "allocateInstance", Object.class, Class.class);
+
+		arrayBaseOffset0 = symbols.find_special_method(jdk_internal_misc_Unsafe, "arrayBaseOffset0", int.class, Class.class);
+		arrayIndexScale0 = symbols.find_special_method(jdk_internal_misc_Unsafe, "arrayIndexScale0", int.class, Class.class);
+
+		// 内存读写
+		putReference = symbols.find_special_method(jdk_internal_misc_Unsafe, "putReference", void.class, Object.class, long.class, Object.class);
+		getReference = symbols.find_special_method(jdk_internal_misc_Unsafe, "getReference", Object.class, Object.class, long.class);
+
+		putByte = symbols.find_special_method(jdk_internal_misc_Unsafe, "putByte", void.class, Object.class, long.class, byte.class);
+		getByte = symbols.find_special_method(jdk_internal_misc_Unsafe, "getByte", byte.class, Object.class, long.class);
+
+		putChar = symbols.find_special_method(jdk_internal_misc_Unsafe, "putChar", void.class, Object.class, long.class, char.class);
+		getChar = symbols.find_special_method(jdk_internal_misc_Unsafe, "getChar", char.class, Object.class, long.class);
+
+		putBoolean = symbols.find_special_method(jdk_internal_misc_Unsafe, "putBoolean", void.class, Object.class, long.class, boolean.class);
+		getBoolean = symbols.find_special_method(jdk_internal_misc_Unsafe, "getBoolean", boolean.class, Object.class, long.class);
+
+		putShort = symbols.find_special_method(jdk_internal_misc_Unsafe, "putShort", void.class, Object.class, long.class, short.class);
+		getShort = symbols.find_special_method(jdk_internal_misc_Unsafe, "getShort", short.class, Object.class, long.class);
+
+		putInt = symbols.find_special_method(jdk_internal_misc_Unsafe, "putInt", void.class, Object.class, long.class, int.class);
+		getInt = symbols.find_special_method(jdk_internal_misc_Unsafe, "getInt", int.class, Object.class, long.class);
+
+		putLong = symbols.find_special_method(jdk_internal_misc_Unsafe, "putLong", void.class, Object.class, long.class, long.class);
+		getLong = symbols.find_special_method(jdk_internal_misc_Unsafe, "getLong", long.class, Object.class, long.class);
+
+		putFloat = symbols.find_special_method(jdk_internal_misc_Unsafe, "putFloat", void.class, Object.class, long.class, float.class);
+		getFloat = symbols.find_special_method(jdk_internal_misc_Unsafe, "getFloat", float.class, Object.class, long.class);
+
+		putDouble = symbols.find_special_method(jdk_internal_misc_Unsafe, "putDouble", void.class, Object.class, long.class, double.class);
+		getDouble = symbols.find_special_method(jdk_internal_misc_Unsafe, "getDouble", double.class, Object.class, long.class);
+
+		// cmpxchg及cas
+		compareAndSetReference = symbols.find_special_method(jdk_internal_misc_Unsafe, "compareAndSetReference", boolean.class, Object.class, long.class, Object.class, Object.class);
+		compareAndExchangeReference = symbols.find_special_method(jdk_internal_misc_Unsafe, "compareAndExchangeReference", Object.class, Object.class, long.class, Object.class, Object.class);
+
+		compareAndSetByte = symbols.find_special_method(jdk_internal_misc_Unsafe, "compareAndSetByte", boolean.class, Object.class, long.class, byte.class, byte.class);
+		compareAndExchangeByte = symbols.find_special_method(jdk_internal_misc_Unsafe, "compareAndExchangeByte", byte.class, Object.class, long.class, byte.class, byte.class);
+
+		compareAndSetChar = symbols.find_special_method(jdk_internal_misc_Unsafe, "compareAndSetChar", boolean.class, Object.class, long.class, char.class, char.class);
+		compareAndExchangeChar = symbols.find_special_method(jdk_internal_misc_Unsafe, "compareAndExchangeChar", char.class, Object.class, long.class, char.class, char.class);
+
+		compareAndSetBoolean = symbols.find_special_method(jdk_internal_misc_Unsafe, "compareAndSetBoolean", boolean.class, Object.class, long.class, boolean.class, boolean.class);
+		compareAndExchangeBoolean = symbols.find_special_method(jdk_internal_misc_Unsafe, "compareAndExchangeBoolean", boolean.class, Object.class, long.class, boolean.class, boolean.class);
+
+		compareAndSetShort = symbols.find_special_method(jdk_internal_misc_Unsafe, "compareAndSetShort", boolean.class, Object.class, long.class, short.class, short.class);
+		compareAndExchangeShort = symbols.find_special_method(jdk_internal_misc_Unsafe, "compareAndExchangeShort", short.class, Object.class, long.class, short.class, short.class);
+
+		compareAndSetInt = symbols.find_special_method(jdk_internal_misc_Unsafe, "compareAndSetInt", boolean.class, Object.class, long.class, int.class, int.class);
+		compareAndExchangeInt = symbols.find_special_method(jdk_internal_misc_Unsafe, "compareAndExchangeInt", int.class, Object.class, long.class, int.class, int.class);
+
+		compareAndSetLong = symbols.find_special_method(jdk_internal_misc_Unsafe, "compareAndSetLong", boolean.class, Object.class, long.class, long.class, long.class);
+		compareAndExchangeLong = symbols.find_special_method(jdk_internal_misc_Unsafe, "compareAndExchangeLong", long.class, Object.class, long.class, long.class, long.class);
+
+		compareAndSetFloat = symbols.find_special_method(jdk_internal_misc_Unsafe, "compareAndSetFloat", boolean.class, Object.class, long.class, float.class, float.class);
+		compareAndExchangeFloat = symbols.find_special_method(jdk_internal_misc_Unsafe, "compareAndExchangeFloat", float.class, Object.class, long.class, float.class, float.class);
+
+		compareAndSetDouble = symbols.find_special_method(jdk_internal_misc_Unsafe, "compareAndSetDouble", boolean.class, Object.class, long.class, double.class, double.class);
+		compareAndExchangeDouble = symbols.find_special_method(jdk_internal_misc_Unsafe, "compareAndExchangeDouble", double.class, Object.class, long.class, double.class, double.class);
+
+		loadFence = symbols.find_special_method(jdk_internal_misc_Unsafe, "loadFence", void.class);
+		storeFence = symbols.find_special_method(jdk_internal_misc_Unsafe, "storeFence", void.class);
+		fullFence = symbols.find_special_method(jdk_internal_misc_Unsafe, "fullFence", void.class);
+		loadLoadFence = symbols.find_special_method(jdk_internal_misc_Unsafe, "loadLoadFence", void.class);
+		storeStoreFence = symbols.find_special_method(jdk_internal_misc_Unsafe, "storeStoreFence", void.class);
+
+		shouldBeInitialized0 = symbols.find_special_method(jdk_internal_misc_Unsafe, "shouldBeInitialized0", boolean.class, Class.class);
+		ensureClassInitialized0 = symbols.find_special_method(jdk_internal_misc_Unsafe, "ensureClassInitialized0", void.class, Class.class);
+
+		address_size = address_size();
+		array_object_base_offset = array_base_offset(Object[].class);
+		array_object_index_scale = array_index_scale(Object[].class);
+		array_byte_base_offset = array_base_offset(byte[].class);
+		array_byte_index_scale = array_index_scale(byte[].class);
+		oop_size = array_object_index_scale;
+		array_long_base_offset = array_base_offset(long[].class);
+		array_long_index_scale = array_index_scale(long[].class);
+	}
+
+	public static final int os_arch;
+	public static final boolean lp64;
+
+	static
+	{
+		String arch = System.getProperty("os.arch");
+		if (arch == null)
+			throw new java.lang.UnknownError("system property 'os.arch' found null, this property is guaranteed by Java Specification");
+		if (arch.contains("64"))
+			os_arch = 64;
+		else if (arch.contains("32")
+				|| arch.equals("ppc")
+				|| arch.equals("sparc")
+				|| arch.equals("mips"))
+			os_arch = 32;
+		else if (arch.contains("16")
+				|| arch.equals("i8086")
+				|| arch.equals("i286"))
+			os_arch = 16;
+		else
+			os_arch = 0;// 未知
+		if (os_arch == 64)
+			lp64 = true;
+		else
+			lp64 = false;
+	}
+
+	public static final class methods
+	{
+		/**
+		 * 调用internalUnsafe的方法
+		 * 
+		 * @param method_name 方法名称
+		 * @param arg_types   参数类型
+		 * @param args        实参
+		 * @return
+		 */
+		public static final Object call(String method_name, Class<?>[] arg_types, Object... args)
+		{
+			try
+			{
+				return reflection.call(unsafe.instance_jdk_internal_misc_Unsafe, method_name, arg_types, args);
+			}
+			catch (SecurityException ex)
+			{
+				throw new java.lang.InternalError("call jdk.internal.misc.Unsafe." + method_name + "() failed", ex);
+			}
+		}
+	}
+
+	/**
+	 * 没有任何安全检查的Unsafe.objectFieldOffset方法，可以获取record的成员offset
+	 * 
+	 * @param field
+	 * @return
+	 */
+	public static final long object_field_offset(Field field)
+	{
+		try
+		{
+			return (long) objectFieldOffset0.invoke(instance_jdk_internal_misc_Unsafe, field);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("get object field offset of '" + field.toString() + "' failed", ex);
+		}
+	}
+
+	/**
+	 * 获取目标类本身声明的字段的偏移量，其继承的字段偏移量无法获取
+	 */
+	public static final long object_field_offset(Class<?> clazz, String field_name)
+	{
+		try
+		{
+			return (long) objectFieldOffset1.invoke(instance_jdk_internal_misc_Unsafe, clazz, field_name);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("get object field offset of '" + field_name + "' failed", ex);
+		}
+	}
+
+	public static final Object static_field_base(Field field)
+	{
+		try
+		{
+			return staticFieldBase0.invoke(instance_jdk_internal_misc_Unsafe, field);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("get static field base of '" + field.toString() + "' failed", ex);
+		}
+	}
+
+	public static final long static_field_offset(Field field)
+	{
+		try
+		{
+			return (long) staticFieldOffset0.invoke(instance_jdk_internal_misc_Unsafe, field);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("get static field offset of '" + field.toString() + "' failed", ex);
+		}
+	}
+
+	/**
+	 * 不调用构造函数创建一个对象。<br>
+	 * 只能分配非abstract的类。<br>
+	 * 
+	 * @param clazz 对象类
+	 * @return 分配的对象
+	 */
+	public static final <_T> _T allocate(Class<_T> clazz)
+	{
+		try
+		{
+			return (_T) allocateInstance.invoke(instance_jdk_internal_misc_Unsafe, clazz);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("allocate object of '" + clazz + "' failed", ex);
+		}
+	}
+
+	/**
+	 * 无视abstract、interface修饰符强制分配一个对象。<br>
+	 * interface没有内存空间，只有方法表，故此处临时将interface的内存布局改为Object。<br>
+	 * 
+	 * @param <_T>
+	 * @param clazz
+	 * @return
+	 */
+	public static final <_T> _T force_allocate(Class<_T> clazz)
+	{
+		_T o = null;
+		// unsafe方法是许多方法的前置，因此在此方法内只使用参数为基本类型的静态方法，不构造vm_struct对象，防止方法无限递归
+		long k = java_lang_Class.klass_ptr(clazz);
+		short acc = Klass.access_flags(k);
+		boolean is_abstract = AccessFlags.is_abstract(acc);
+		boolean is_interface = AccessFlags.is_interface(acc);// 接口同时具有is_abstract标志位，因此要先判断is_interface
+		if (is_interface)
+		{
+			// 接口的内存布局为空
+			// 将接口的内存布局改为Object才能进行对象分配
+			/*
+			 * https://github.com/openjdk/jdk/blob/jdk-25%2B36/src/hotspot/share/oops/klassVtable.cpp#L1151
+			 * 分配内存时需要计算vtable和itable，接口没有itable。
+			 */
+		}
+		else if (is_abstract)
+		{
+			acc = AccessFlags.set_abstract(acc, false);
+			Klass.set_access_flags(k, acc);
+			o = allocate(clazz);
+			acc = AccessFlags.set_abstract(acc, is_abstract);
+			Klass.set_access_flags(k, acc);
+		}
+		else
+		{
+			o = allocate(clazz);
+		}
+		return o;
+	}
+
+	/**
+	 * 强制初始化一个类。<br>
+	 * 如果已经初始化则会重新执行初始化<clinit>。<br>
+	 * 
+	 * @param clazz
+	 */
+	public static final void force_initialize(Class<?> clazz)
+	{
+		long ik = java_lang_Class.klass_ptr(clazz);
+		if (InstanceKlass.init_state(ik) >= ClassState.fully_initialized)// 如果已经初始化完成或初始化错误，则标记为已链接未初始化
+			InstanceKlass.set_init_state(ik, ClassState.linked);
+		ensure_class_initialized(clazz);
+	}
+
+	/**
+	 * 无视abstract修饰符强制使用构造函数实例化一个对象。<br>
+	 * 
+	 * @param <_T>
+	 * @param clazz
+	 * @param arg_types
+	 * @param args
+	 * @return
+	 */
+	public static final <_T> _T force_construct(Class<_T> clazz, Class<?>[] arg_types, Object... args)
+	{
+		try
+		{
+			return java_type.placement_new(force_allocate(clazz), arg_types, args);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("force construct '" + clazz + "' failed", ex);
+		}
+	}
+
+	/**
+	 * 写指针值，不同位数的操作系统指针大小不同。<br>
+	 * Unsafe的putAddress()方法.<br>
+	 * 在base基地址+offset处储存一个地址值。<br>
+	 * 
+	 * @param base
+	 * @param offset
+	 * @param ptr
+	 */
+	public static final void write_ptr(Object base, long offset, long ptr)
+	{
+		try
+		{
+			putAddress.invoke(instance_jdk_internal_misc_Unsafe, base, offset, ptr);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("write pointer of '" + base + "' + '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final void write_ptr(long addr, long ptr)
+	{
+		write_ptr(null, addr, ptr);
+	}
+
+	public static final void write_ptr(long addr, pointer_type ptr)
+	{
+		write_ptr(addr, ptr.address());
+	}
+
+	/**
+	 * Unsafe的getAddress()方法.<br>
+	 * 该方法读取base基地址+offset处指向的地址。<br>
+	 * 
+	 * @param base
+	 * @param offset
+	 * @return
+	 */
+	public static final long read_ptr(Object base, long offset)
+	{
+		try
+		{
+			return (long) getAddress.invoke(instance_jdk_internal_misc_Unsafe, base, offset);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("read pointer of '" + base + "' + '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final long read_ptr(long addr)
+	{
+		return read_ptr(null, addr);
+	}
+
+	/**
+	 * 读取const char*字段并将其转为Java String。<br>
+	 * 
+	 * @param base
+	 * @param offset
+	 * @return
+	 */
+	public static final String read_cstr(Object base, long offset)
+	{
+		return memory.string(read_ptr(base, offset));
+	}
+
+	public static final String read_cstr(long addr)
+	{
+		return read_cstr(null, addr);
+	}
+
+	/**
+	 * 读取C字符串数组
+	 * 
+	 * @param base
+	 * @param offset
+	 * @param num
+	 * @return
+	 */
+	public static final String[] read_cstr_arr(Object base, long offset, int num)
+	{
+		String[] strs = new String[num];
+		for (int idx = 0; idx < num; ++idx)
+		{
+			strs[idx] = read_cstr(base, offset + idx * cxx_type.pchar.size());
+		}
+		return strs;
+	}
+
+	public static final String[] read_cstr_arr(long addr, int num)
+	{
+		return read_cstr_arr(null, addr, num);
+	}
+
+	/**
+	 * 写入C字符串，字符串不需要时需要手动释放内存。<br>
+	 * 
+	 * @param base
+	 * @param offset
+	 * @param str
+	 * @return 分配的C字符串
+	 */
+	public static final pointer write_cstr(Object base, long offset, String str)
+	{
+		pointer cstr = memory.c_str(str);
+		write_ptr(base, offset, cstr.address());
+		return cstr;
+	}
+
+	public static final pointer write_cstr(long addr, String str)
+	{
+		return write_cstr(null, addr, str);
+	}
+
+	public static final int address_size()
+	{
+		try
+		{
+			return (int) addressSize.invoke(instance_jdk_internal_misc_Unsafe);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("get address size failed", ex);
+		}
+	}
+
+	/**
+	 * * 将addr视作oop的指针，并调用JNIHandles::make_local(oop)返回jobject。<br>
+	 * 即将目标oop注册到线程本地引用表、oop与jobject通过JNIHandles::make_local()函数族和JNIHandles::resolve()可以相互转换。<br>
+	 * 
+	 * @param oop_addr 指向oop的指针
+	 * @return
+	 */
+	public static final Object oop_make_local(long oop_addr)
+	{
+		try
+		{
+			return getUncompressedObject.invoke(instance_jdk_internal_misc_Unsafe, oop_addr);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("make local oop at '" + oop_addr + "' failed", ex);
+		}
+	}
+
+	public static final long malloc(long size)
+	{
+		try
+		{
+			return (long) allocateMemory0.invoke(instance_jdk_internal_misc_Unsafe, size);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("allocate memory failed, size = " + size, ex);
+		}
+	}
+
+	public static final void free(long address)
+	{
+		try
+		{
+			freeMemory0.invoke(instance_jdk_internal_misc_Unsafe, address);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("free memory failed, address = " + address, ex);
+		}
+	}
+
+	public static final void memset(Object base, long offset, long num, byte value)
+	{
+		try
+		{
+			setMemory0.invoke(instance_jdk_internal_misc_Unsafe, base, offset, num, value);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("memset failed", ex);
+		}
+	}
+
+	public static final void memset(long addr, long num, byte value)
+	{
+		memset(null, addr, num, value);
+	}
+
+	public static final void memcpy(Object dest_base, long dest_offset, Object src_base, long src_offset, long num)
+	{
+		try
+		{
+			copyMemory0.invoke(instance_jdk_internal_misc_Unsafe, src_base, src_offset, dest_base, dest_offset, num);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("memcpy failed", ex);
+		}
+	}
+
+	public static final void memcpy(long dest_addr, long src_addr, long num)
+	{
+		memcpy((Object) null, dest_addr, (Object) null, src_addr, num);
+	}
+
+	public static final void memcpy(Object dest_base, long dest_offset, Object[] src_arr, long src_idx, long num)
+	{
+		memcpy(dest_base, dest_offset, (Object) src_arr, array_object_base_offset + src_idx * java_type.object_reference_size, num * java_type.object_reference_size);
+	}
+
+	public static final void memcpy(Object[] dest_arr, long dest_idx, Object[] src_arr, long src_idx, long num)
+	{
+		memcpy((Object) dest_arr, array_object_base_offset + dest_idx * java_type.object_reference_size, (Object) src_arr, array_object_base_offset + src_idx * java_type.object_reference_size, num * java_type.object_reference_size);
+	}
+
+	public static final void memcpy(Object dest_base, long dest_offset, byte[] src_arr, long src_idx, long num)
+	{
+		memcpy(dest_base, dest_offset, (Object) src_arr, array_byte_base_offset + src_idx * java_type.byte_size, num * java_type.byte_size);
+	}
+
+	public static final void memcpy(byte[] dest_arr, long dest_idx, Object src_base, long src_offset, long num)
+	{
+		memcpy((Object) dest_arr, array_byte_base_offset + dest_idx * java_type.byte_size, src_base, src_offset, num * java_type.byte_size);
+	}
+
+	/**
+	 * 从Java的byte[]数组拷贝数据到C/C++的内存地址
+	 * 
+	 * @param src_arr
+	 * @param src_idx
+	 * @param dest_addr
+	 * @param num
+	 */
+	public static final void memcpy(long dest_addr, byte[] src_arr, long src_idx, long num)
+	{
+		memcpy((Object) null, dest_addr, src_arr, src_idx, num);
+	}
+
+	/**
+	 * 从C/C++的内存地址拷贝数据到Java的byte[]数组
+	 * 
+	 * @param src_addr
+	 * @param dest_arr
+	 * @param dest_idx
+	 * @param num
+	 */
+	public static final void memcpy(byte[] dest_arr, long dest_idx, long src_addr, long num)
+	{
+		memcpy(dest_arr, dest_idx, (Object) null, src_addr, num);
+	}
+
+	public static final void memcpy(long[] dest_arr, long dest_idx, long[] src_arr, long src_idx, long num)
+	{
+		memcpy(dest_arr, array_long_base_offset + dest_idx * java_type.long_size, src_arr, array_long_base_offset + src_idx * java_type.long_size, num);
+	}
+
+	/**
+	 * 获取数组的数据部分起始地址
+	 * 
+	 * @param array_class
+	 * @return
+	 */
+	public static final int array_base_offset(Class<?> array_class)
+	{
+		try
+		{
+			return (int) arrayBaseOffset0.invoke(instance_jdk_internal_misc_Unsafe, array_class);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("get array base offset of '" + array_class + "' failed", ex);
+		}
+	}
+
+	/**
+	 * 获取数组元素占用内存的大小，单位字节。
+	 * 
+	 * @param array_class
+	 * @return
+	 */
+	public static final int array_index_scale(Class<?> array_class)
+	{
+		try
+		{
+			return (int) arrayIndexScale0.invoke(instance_jdk_internal_misc_Unsafe, array_class);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("get array index scale of '" + array_class + "' failed", ex);
+		}
+	}
+
+	/**
+	 * 存引用字段。<br>
+	 * 注意：如果目标是类A的静态字段，那么需要在调用此方法改写之前先初始化A，否则A初始化会覆盖掉本方法写入的值。<br>
+	 * 使用类A才会触发类的初始化。<br>
+	 * 
+	 * @param o
+	 * @param offset
+	 * @param x
+	 */
+	public static final void write(Object base, long offset, Object x)
+	{
+		try
+		{
+			putReference.invoke(instance_jdk_internal_misc_Unsafe, base, offset, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("put reference '" + x + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final void write(long native_addr, Object x)
+	{
+		write(null, native_addr, x);
+	}
+
+	public static final Object read_reference(Object base, long offset)
+	{
+		try
+		{
+			return getReference.invoke(instance_jdk_internal_misc_Unsafe, base, offset);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("get reference at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final Object read_reference(long native_addr)
+	{
+		return read_reference(null, native_addr);
+	}
+
+	public static final void write(Object base, long offset, byte x)
+	{
+		try
+		{
+			putByte.invoke(instance_jdk_internal_misc_Unsafe, base, offset, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("put byte '" + x + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final void write(long native_addr, byte x)
+	{
+		write(null, native_addr, x);
+	}
+
+	public static final byte read_byte(Object base, long offset)
+	{
+		try
+		{
+			return (byte) getByte.invoke(instance_jdk_internal_misc_Unsafe, base, offset);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("get byte at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final byte read_byte(long native_addr)
+	{
+		return read_byte(null, native_addr);
+	}
+
+	public static final void write(Object base, long offset, char x)
+	{
+		try
+		{
+			putChar.invoke(instance_jdk_internal_misc_Unsafe, base, offset, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("put char '" + x + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final void write(long native_addr, char x)
+	{
+		write(null, native_addr, x);
+	}
+
+	public static final char read_char(Object base, long offset)
+	{
+		try
+		{
+			return (char) getChar.invoke(instance_jdk_internal_misc_Unsafe, base, offset);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("get char at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final char read_char(long native_addr)
+	{
+		return read_char(null, native_addr);
+	}
+
+	public static final void write(Object base, long offset, boolean x)
+	{
+		try
+		{
+			putBoolean.invoke(instance_jdk_internal_misc_Unsafe, base, offset, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("put bool '" + x + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final void write(long native_addr, boolean x)
+	{
+		write(null, native_addr, x);
+	}
+
+	public static final boolean read_bool(Object base, long offset)
+	{
+		try
+		{
+			return (boolean) getBoolean.invoke(instance_jdk_internal_misc_Unsafe, base, offset);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("get bool at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final boolean read_bool(long native_addr)
+	{
+		return read_bool(null, native_addr);
+	}
+
+	public static final void write(Object base, long offset, short x)
+	{
+		try
+		{
+			putShort.invoke(instance_jdk_internal_misc_Unsafe, base, offset, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("put short '" + x + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final void write(long native_addr, short x)
+	{
+		write(null, native_addr, x);
+	}
+
+	public static final short read_short(Object base, long offset)
+	{
+		try
+		{
+			return (short) getShort.invoke(instance_jdk_internal_misc_Unsafe, base, offset);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("get short at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final short read_short(long native_addr)
+	{
+		return read_short(null, native_addr);
+	}
+
+	public static final void write(Object base, long offset, int x)
+	{
+		try
+		{
+			putInt.invoke(instance_jdk_internal_misc_Unsafe, base, offset, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("put int '" + x + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final void write(long native_addr, int x)
+	{
+		write(null, native_addr, x);
+	}
+
+	public static final int read_int(Object base, long offset)
+	{
+		try
+		{
+			return (int) getInt.invoke(instance_jdk_internal_misc_Unsafe, base, offset);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("get int at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final int read_int(long native_addr)
+	{
+		return read_int(null, native_addr);
+	}
+
+	public static final long read_size_int(Object base, long offset, int size)
+	{
+		switch (size)
+		{
+		case Byte.BYTES:
+			return read_byte(base, offset);
+		case Short.BYTES:
+			return read_short(base, offset);
+		case Integer.BYTES:
+			return read_int(base, offset);
+		case Long.BYTES:
+			return read_long(base, offset);
+		default:
+			throw new java.lang.IllegalArgumentException("invalid integer size '" + size + "'");
+		}
+	}
+
+	public static final long read_size_int(long native_addr, int size)
+	{
+		return read_size_int(null, native_addr, size);
+	}
+
+	public static final void write_size_int(Object base, long offset, int size, long x)
+	{
+		switch (size)
+		{
+		case Byte.BYTES:
+			write(base, offset, (byte) x);
+		case Short.BYTES:
+			write(base, offset, (short) x);
+		case Integer.BYTES:
+			write(base, offset, (int) x);
+		case Long.BYTES:
+			write(base, offset, x);
+		default:
+			throw new java.lang.IllegalArgumentException("invalid integer size '" + size + "'");
+		}
+	}
+
+	public static final void write_size_int(long native_addr, int size, long x)
+	{
+		write_size_int(null, native_addr, size, x);
+	}
+
+	/**
+	 * 读取C的int类型字段
+	 * 
+	 * @param base
+	 * @param offset
+	 * @return
+	 */
+	public static final int read_cint(Object base, long offset)
+	{
+		try
+		{
+			if (os_arch == 16)
+			{
+				return (int) getShort.invoke(instance_jdk_internal_misc_Unsafe, base, offset);
+			}
+			else
+			{
+				return (int) getInt.invoke(instance_jdk_internal_misc_Unsafe, base, offset);
+			}
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("get c int at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final int read_cint(long native_addr)
+	{
+		return read_cint(null, native_addr);
+	}
+
+	public static final void write_cint(Object base, long offset, int x)
+	{
+		try
+		{
+			if (os_arch == 16)
+			{
+				putShort.invoke(instance_jdk_internal_misc_Unsafe, base, offset, x);
+			}
+			else
+			{
+				putInt.invoke(instance_jdk_internal_misc_Unsafe, base, offset, x);
+			}
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("put c int at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final void write_cint(long native_addr, int x)
+	{
+		write_cint(null, native_addr, x);
+	}
+
+	/**
+	 * 读取unsigned int
+	 * 
+	 * @param base
+	 * @param offset
+	 * @return
+	 */
+	public static final long read_cuint(Object base, long offset)
+	{
+		try
+		{
+			if (os_arch == 16)
+			{
+				return cxx_type.as_uint16_t((short) getShort.invoke(instance_jdk_internal_misc_Unsafe, base, offset));
+			}
+			else
+			{
+				return cxx_type.as_uint32_t((short) getInt.invoke(instance_jdk_internal_misc_Unsafe, base, offset));
+			}
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("get c unsigned int at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final long read_cuint(long native_addr)
+	{
+		return read_cuint(null, native_addr);
+	}
+
+	public static final void write_cuint(Object base, long offset, long x)
+	{
+		try
+		{
+			if (os_arch == 16)
+			{
+				putShort.invoke(instance_jdk_internal_misc_Unsafe, base, offset, cxx_type.uint16_t((int) x));
+			}
+			else
+			{
+				putInt.invoke(instance_jdk_internal_misc_Unsafe, base, offset, cxx_type.uint32_t(x));
+			}
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("put c unsigned int at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final void write_cuint(long native_addr, long x)
+	{
+		write_cuint(null, native_addr, x);
+	}
+
+	/**
+	 * 读取无符号16位整数
+	 * 
+	 * @param native_addr
+	 * @return
+	 */
+	public static final int read_uint16_t(Object base, long offset)
+	{
+		try
+		{
+			return cxx_type.as_uint16_t((short) getShort.invoke(instance_jdk_internal_misc_Unsafe, base, offset));
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("get uint16_t int at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final int read_uint16_t(long native_addr)
+	{
+		return read_uint16_t(null, native_addr);
+	}
+
+	public static final void write_uint16_t(Object base, long offset, int x)
+	{
+		try
+		{
+			putShort.invoke(instance_jdk_internal_misc_Unsafe, base, offset, cxx_type.uint16_t(x));
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("put uint16_t at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final void write_uint16_t(long native_addr, int x)
+	{
+		write_uint16_t(null, native_addr, x);
+	}
+
+	/**
+	 * 读取无符号8位整数
+	 * 
+	 * @param base
+	 * @param offset
+	 * @return
+	 */
+	public static final int read_uint8_t(Object base, long offset)
+	{
+		try
+		{
+			return cxx_type.as_uint8_t((byte) getByte.invoke(instance_jdk_internal_misc_Unsafe, base, offset));
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("get uint8_t int at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final int read_uint8_t(long native_addr)
+	{
+		return read_uint8_t(null, native_addr);
+	}
+
+	public static final void write_uint8_t(Object base, long offset, short x)
+	{
+		try
+		{
+			putByte.invoke(instance_jdk_internal_misc_Unsafe, base, offset, cxx_type.uint8_t(x));
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("put uint8_t at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final void write_uint8_t(long native_addr, short x)
+	{
+		write_uint8_t(null, native_addr, x);
+	}
+
+	/**
+	 * 读取C/C++的bool值
+	 * 
+	 * @param base
+	 * @param offset
+	 * @return
+	 */
+	public static final boolean read_cbool(Object base, long offset)
+	{
+		try
+		{
+			return read_cint(base, offset) == 0 ? false : true;// 严格讲必须是C/C++的int类型，不一定是32位。
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("get c bool at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final boolean read_cbool(long native_addr)
+	{
+		return read_cbool(null, native_addr);
+	}
+
+	public static final void write_cbool(Object base, long offset, boolean value)
+	{
+		try
+		{
+			write_cint(base, offset, value ? 1 : 0);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("put c bool at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final void write_cbool(long native_addr, boolean value)
+	{
+		write_cbool(null, native_addr, value);
+	}
+
+	public static final void write(Object base, long offset, long x)
+	{
+		try
+		{
+			putLong.invoke(instance_jdk_internal_misc_Unsafe, base, offset, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("put long '" + x + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final void write(long native_addr, long x)
+	{
+		write(null, native_addr, x);
+	}
+
+	public static final long read_long(Object base, long offset)
+	{
+		try
+		{
+			return (long) getLong.invoke(instance_jdk_internal_misc_Unsafe, base, offset);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("get long at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final long read_long(long native_addr)
+	{
+		return read_long(null, native_addr);
+	}
+
+	public static final boolean read_u64bool(Object base, long offset)
+	{
+		try
+		{
+			return ((long) getLong.invoke(instance_jdk_internal_misc_Unsafe, base, offset)) == 0 ? false : true;
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("get uint64_t bool at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final boolean read_u64bool(long native_addr)
+	{
+		return read_u64bool(null, native_addr);
+	}
+
+	public static final void write(Object base, long offset, double x)
+	{
+		try
+		{
+			putDouble.invoke(instance_jdk_internal_misc_Unsafe, base, offset, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("put double '" + x + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final void write(long native_addr, double x)
+	{
+		write(null, native_addr, x);
+	}
+
+	public static final double read_double(Object base, long offset)
+	{
+		try
+		{
+			return (double) getDouble.invoke(instance_jdk_internal_misc_Unsafe, base, offset);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("get double at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final double read_double(long native_addr)
+	{
+		return read_double(null, native_addr);
+	}
+
+	public static final void write(Object base, long offset, float x)
+	{
+		try
+		{
+			putFloat.invoke(instance_jdk_internal_misc_Unsafe, base, offset, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("put float '" + x + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final void write(long native_addr, float x)
+	{
+		write(null, native_addr, x);
+	}
+
+	public static final float read_float(Object base, long offset)
+	{
+		try
+		{
+			return (float) getFloat.invoke(instance_jdk_internal_misc_Unsafe, base, offset);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("get float at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final float read_float(long native_addr)
+	{
+		return read_float(null, native_addr);
+	}
+
+	// cmpxchg & cas
+	public static final boolean cas(Object base, long offset, Object expected, Object x)
+	{
+		try
+		{
+			return (boolean) compareAndSetReference.invoke(instance_jdk_internal_misc_Unsafe, base, offset, expected, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("compare and swap reference '" + x + "' with expected '" + expected + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final boolean cas(long native_addr, Object expected, Object x)
+	{
+		return cas(null, native_addr, expected, x);
+	}
+
+	public static final Object cmpxchg(Object base, long offset, Object expected, Object x)
+	{
+		try
+		{
+			return (Object) compareAndExchangeReference.invoke(instance_jdk_internal_misc_Unsafe, base, offset, expected, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("compare and exchange reference '" + x + "' with expected '" + expected + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final Object cmpxchg(long native_addr, Object expected, Object x)
+	{
+		return cmpxchg(null, native_addr, expected, x);
+	}
+
+	public static final boolean cas(Object base, long offset, byte expected, byte x)
+	{
+		try
+		{
+			return (boolean) compareAndSetByte.invoke(instance_jdk_internal_misc_Unsafe, base, offset, expected, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("compare and swap byte '" + x + "' with expected '" + expected + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final boolean cas(long native_addr, byte expected, byte x)
+	{
+		return cas(null, native_addr, expected, x);
+	}
+
+	public static final byte cmpxchg(Object base, long offset, byte expected, byte x)
+	{
+		try
+		{
+			return (byte) compareAndExchangeByte.invoke(instance_jdk_internal_misc_Unsafe, base, offset, expected, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("compare and exchange byte '" + x + "' with expected '" + expected + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final byte cmpxchg(long native_addr, byte expected, byte x)
+	{
+		return cmpxchg(null, native_addr, expected, x);
+	}
+
+	public static final boolean cas(Object base, long offset, char expected, char x)
+	{
+		try
+		{
+			return (boolean) compareAndSetChar.invoke(instance_jdk_internal_misc_Unsafe, base, offset, expected, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("compare and swap char '" + x + "' with expected '" + expected + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final boolean cas(long native_addr, char expected, char x)
+	{
+		return cas(null, native_addr, expected, x);
+	}
+
+	public static final char cmpxchg(Object base, long offset, char expected, char x)
+	{
+		try
+		{
+			return (char) compareAndExchangeChar.invoke(instance_jdk_internal_misc_Unsafe, base, offset, expected, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("compare and exchange char '" + x + "' with expected '" + expected + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final char cmpxchg(long native_addr, char expected, char x)
+	{
+		return cmpxchg(null, native_addr, expected, x);
+	}
+
+	public static final boolean cas(Object base, long offset, short expected, short x)
+	{
+		try
+		{
+			return (boolean) compareAndSetShort.invoke(instance_jdk_internal_misc_Unsafe, base, offset, expected, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("compare and swap short '" + x + "' with expected '" + expected + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final boolean cas(long native_addr, short expected, short x)
+	{
+		return cas(null, native_addr, expected, x);
+	}
+
+	public static final short cmpxchg(Object base, long offset, short expected, short x)
+	{
+		try
+		{
+			return (short) compareAndExchangeShort.invoke(instance_jdk_internal_misc_Unsafe, base, offset, expected, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("compare and exchange short '" + x + "' with expected '" + expected + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final short cmpxchg(long native_addr, short expected, short x)
+	{
+		return cmpxchg(null, native_addr, expected, x);
+	}
+
+	public static final boolean cas(Object base, long offset, int expected, int x)
+	{
+		try
+		{
+			return (boolean) compareAndSetInt.invoke(instance_jdk_internal_misc_Unsafe, base, offset, expected, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("compare and swap int '" + x + "' with expected '" + expected + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final boolean cas(long native_addr, int expected, int x)
+	{
+		return cas(null, native_addr, expected, x);
+	}
+
+	public static final int cmpxchg(Object base, long offset, int expected, int x)
+	{
+		try
+		{
+			return (int) compareAndExchangeInt.invoke(instance_jdk_internal_misc_Unsafe, base, offset, expected, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("compare and exchange int '" + x + "' with expected '" + expected + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final int cmpxchg(long native_addr, int expected, int x)
+	{
+		return cmpxchg(null, native_addr, expected, x);
+	}
+
+	public static final boolean cas(Object base, long offset, long expected, long x)
+	{
+		try
+		{
+			return (boolean) compareAndSetLong.invoke(instance_jdk_internal_misc_Unsafe, base, offset, expected, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("compare and swap long '" + x + "' with expected '" + expected + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final boolean cas(long native_addr, long expected, long x)
+	{
+		return cas(null, native_addr, expected, x);
+	}
+
+	public static final long cmpxchg(Object base, long offset, long expected, long x)
+	{
+		try
+		{
+			return (long) compareAndExchangeLong.invoke(instance_jdk_internal_misc_Unsafe, base, offset, expected, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("compare and exchange long '" + x + "' with expected '" + expected + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final long cmpxchg(long native_addr, long expected, long x)
+	{
+		return cmpxchg(null, native_addr, expected, x);
+	}
+
+	public static final boolean cas(Object base, long offset, boolean expected, boolean x)
+	{
+		try
+		{
+			return (boolean) compareAndSetBoolean.invoke(instance_jdk_internal_misc_Unsafe, base, offset, expected, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("compare and swap bool '" + x + "' with expected '" + expected + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final boolean cas(long native_addr, boolean expected, boolean x)
+	{
+		return cas(null, native_addr, expected, x);
+	}
+
+	public static final boolean cmpxchg(Object base, long offset, boolean expected, boolean x)
+	{
+		try
+		{
+			return (boolean) compareAndExchangeBoolean.invoke(instance_jdk_internal_misc_Unsafe, base, offset, expected, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("compare and exchange bool '" + x + "' with expected '" + expected + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final boolean cmpxchg(long native_addr, boolean expected, boolean x)
+	{
+		return cmpxchg(null, native_addr, expected, x);
+	}
+
+	public static final boolean cas(Object base, long offset, float expected, float x)
+	{
+		try
+		{
+			return (boolean) compareAndSetFloat.invoke(instance_jdk_internal_misc_Unsafe, base, offset, expected, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("compare and swap float '" + x + "' with expected '" + expected + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final boolean cas(long native_addr, float expected, float x)
+	{
+		return cas(null, native_addr, expected, x);
+	}
+
+	public static final float cmpxchg(Object base, long offset, float expected, float x)
+	{
+		try
+		{
+			return (float) compareAndExchangeFloat.invoke(instance_jdk_internal_misc_Unsafe, base, offset, expected, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("compare and exchange float '" + x + "' with expected '" + expected + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final float cmpxchg(long native_addr, float expected, float x)
+	{
+		return cmpxchg(null, native_addr, expected, x);
+	}
+
+	public static final boolean cas(Object base, long offset, double expected, double x)
+	{
+		try
+		{
+			return (boolean) compareAndSetDouble.invoke(instance_jdk_internal_misc_Unsafe, base, offset, expected, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("compare and swap double '" + x + "' with expected '" + expected + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final boolean cas(long native_addr, double expected, double x)
+	{
+		return cas(null, native_addr, expected, x);
+	}
+
+	public static final double cmpxchg(Object base, long offset, double expected, double x)
+	{
+		try
+		{
+			return (double) compareAndExchangeDouble.invoke(instance_jdk_internal_misc_Unsafe, base, offset, expected, x);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("compare and exchange double '" + x + "' with expected '" + expected + "' at '" + base + "' offset '" + offset + "' failed", ex);
+		}
+	}
+
+	public static final double cmpxchg(long native_addr, double expected, double x)
+	{
+		return cmpxchg(null, native_addr, expected, x);
+	}
+
+	/**
+	 * 在字节数组中写入float<br>
+	 * 一般用于操作缓冲区
+	 * 
+	 * @param byte_arr
+	 * @param offset
+	 * @param x
+	 */
+	public static final void write_array(byte[] byte_arr, long arr_idx, float x)
+	{
+		write(byte_arr, array_byte_base_offset + arr_idx, x);
+	}
+
+	public static final void write_array(byte[] byte_arr, long arr_idx, int x)
+	{
+		write(byte_arr, array_byte_base_offset + arr_idx, x);
+	}
+
+	public static final void write_array(byte[] byte_arr, long arr_idx, short x)
+	{
+		write(byte_arr, array_byte_base_offset + arr_idx, x);
+	}
+
+	public static final void write_array(byte[] byte_arr, long arr_idx, long x)
+	{
+		write(byte_arr, array_byte_base_offset + arr_idx, x);
+	}
+
+	public static final void write_array(byte[] byte_arr, long arr_idx, double x)
+	{
+		write(byte_arr, array_byte_base_offset + arr_idx, x);
+	}
+
+	/**
+	 * 在字节数组中读取float<br>
+	 * 一般用于操作缓冲区
+	 * 
+	 * @param byte_arr
+	 * @param arr_idx
+	 * @param x
+	 * @return
+	 */
+	public static final float read_array_float(byte[] byte_arr, long arr_idx)
+	{
+		return read_float(byte_arr, array_byte_base_offset + arr_idx);
+	}
+
+	public static final int read_array_int(byte[] byte_arr, long arr_idx)
+	{
+		return read_int(byte_arr, array_byte_base_offset + arr_idx);
+	}
+
+	public static final short read_array_short(byte[] byte_arr, long arr_idx)
+	{
+		return read_short(byte_arr, array_byte_base_offset + arr_idx);
+	}
+
+	public static final long read_array_long(byte[] byte_arr, long arr_idx)
+	{
+		return read_long(byte_arr, array_byte_base_offset + arr_idx);
+	}
+
+	public static final double read_array_double(byte[] byte_arr, long arr_idx)
+	{
+		return read_double(byte_arr, array_byte_base_offset + arr_idx);
+	}
+
+	/**
+	 * 无视访问权限和修饰符修改Object值，如果是静态成员忽略obj参数.此方法对于HiddenClass和record同样有效
+	 * 
+	 * @param obj   要修改值的对象
+	 * @param field 要修改的Field
+	 * @param value 要修改的值
+	 * @return
+	 */
+	public static final void write(Object obj, Field field, Object value)
+	{
+		if (Modifier.isStatic(field.getModifiers()))
+			write(static_field_base(field), static_field_offset(field), value);
+		else
+			write(obj, object_field_offset(field), value);
+	}
+
+	public static final void write(Object obj, String field, Object value)
+	{
+		write(obj, reflection.find_declared_field(obj, field), value);
+	}
+
+	public static final void write(Class<?> clazz, String field, Object value)
+	{
+		write(null, reflection.find_declared_field(clazz, field), value);
+	}
+
+	public static final void write_member(Object obj, String field, Object value)
+	{
+		write(obj, object_field_offset(obj.getClass(), field), value);
+	}
+
+	public static final void write_static(Class<?> clazz, String field, Object value)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		write(static_field_base(f), static_field_offset(f), value);
+	}
+
+	public static final Object read_reference(Object obj, Field field)
+	{
+		if (Modifier.isStatic(field.getModifiers()))
+			return read_reference(static_field_base(field), static_field_offset(field));
+		else
+			return read_reference(obj, object_field_offset(field));
+	}
+
+	public static final Object read_reference(Object obj, String field)
+	{
+		return read_reference(obj, reflection.find_declared_field(obj, field));
+	}
+
+	public static final Object read_reference(Class<?> clazz, String field)
+	{
+		return read_reference(null, reflection.find_declared_field(clazz, field));
+	}
+
+	public static final Object read_member_reference(Object obj, String field)
+	{
+		return read_reference(obj, object_field_offset(obj.getClass(), field));
+	}
+
+	public static final Object read_static_reference(Class<?> clazz, String field)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		return read_reference(static_field_base(f), static_field_offset(f));
+	}
+
+	// byte
+	public static final void write(Object obj, Field field, byte value)
+	{
+		if (Modifier.isStatic(field.getModifiers()))
+			write(static_field_base(field), static_field_offset(field), value);
+		else
+			write(obj, object_field_offset(field), value);
+	}
+
+	public static final void write(Object obj, String field, byte value)
+	{
+		write(obj, reflection.find_declared_field(obj, field), value);
+	}
+
+	public static final void write(Class<?> clazz, String field, byte value)
+	{
+		write(null, reflection.find_declared_field(clazz, field), value);
+	}
+
+	public static final void write_member(Object obj, String field, byte value)
+	{
+		write(obj, object_field_offset(obj.getClass(), field), value);
+	}
+
+	public static final void write_static(Class<?> clazz, String field, byte value)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		write(static_field_base(f), static_field_offset(f), value);
+	}
+
+	public static final byte read_byte(Object obj, Field field)
+	{
+		if (Modifier.isStatic(field.getModifiers()))
+			return read_byte(static_field_base(field), static_field_offset(field));
+		else
+			return read_byte(obj, object_field_offset(field));
+	}
+
+	public static final byte read_byte(Object obj, String field)
+	{
+		return read_byte(obj, reflection.find_declared_field(obj, field));
+	}
+
+	public static final byte read_byte(Class<?> clazz, String field)
+	{
+		return read_byte(null, reflection.find_declared_field(clazz, field));
+	}
+
+	public static final byte read_member_byte(Object obj, String field)
+	{
+		return read_byte(obj, object_field_offset(obj.getClass(), field));
+	}
+
+	public static final byte read_static_byte(Class<?> clazz, String field)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		return read_byte(static_field_base(f), static_field_offset(f));
+	}
+
+	// short
+	public static final void write(Object obj, Field field, short value)
+	{
+		if (Modifier.isStatic(field.getModifiers()))
+			write(static_field_base(field), static_field_offset(field), value);
+		else
+			write(obj, object_field_offset(field), value);
+	}
+
+	public static final void write(Object obj, String field, short value)
+	{
+		write(obj, reflection.find_declared_field(obj, field), value);
+	}
+
+	public static final void write(Class<?> clazz, String field, short value)
+	{
+		write(null, reflection.find_declared_field(clazz, field), value);
+	}
+
+	public static final void write_member(Object obj, String field, short value)
+	{
+		write(obj, object_field_offset(obj.getClass(), field), value);
+	}
+
+	public static final void write_static(Class<?> clazz, String field, short value)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		write(static_field_base(f), static_field_offset(f), value);
+	}
+
+	public static final short read_short(Object obj, Field field)
+	{
+		if (Modifier.isStatic(field.getModifiers()))
+			return read_short(static_field_base(field), static_field_offset(field));
+		else
+			return read_short(obj, object_field_offset(field));
+	}
+
+	public static final short read_short(Object obj, String field)
+	{
+		return read_short(obj, reflection.find_declared_field(obj, field));
+	}
+
+	public static final short read_short(Class<?> clazz, String field)
+	{
+		return read_short(null, reflection.find_declared_field(clazz, field));
+	}
+
+	public static final short read_member_short(Object obj, String field)
+	{
+		return read_short(obj, object_field_offset(obj.getClass(), field));
+	}
+
+	public static final short read_static_short(Class<?> clazz, String field)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		return read_short(static_field_base(f), static_field_offset(f));
+	}
+
+	// char
+	public static final void write(Object obj, Field field, char value)
+	{
+		if (Modifier.isStatic(field.getModifiers()))
+			write(static_field_base(field), static_field_offset(field), value);
+		else
+			write(obj, object_field_offset(field), value);
+	}
+
+	public static final void write(Object obj, String field, char value)
+	{
+		write(obj, reflection.find_declared_field(obj, field), value);
+	}
+
+	public static final void write(Class<?> clazz, String field, char value)
+	{
+		write(null, reflection.find_declared_field(clazz, field), value);
+	}
+
+	public static final void write_member(Object obj, String field, char value)
+	{
+		write(obj, object_field_offset(obj.getClass(), field), value);
+	}
+
+	public static final void write_static(Class<?> clazz, String field, char value)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		write(static_field_base(f), static_field_offset(f), value);
+	}
+
+	public static final char read_char(Object obj, Field field)
+	{
+		if (Modifier.isStatic(field.getModifiers()))
+			return read_char(static_field_base(field), static_field_offset(field));
+		else
+			return read_char(obj, object_field_offset(field));
+	}
+
+	public static final char read_char(Object obj, String field)
+	{
+		return read_char(obj, reflection.find_declared_field(obj, field));
+	}
+
+	public static final char read_char(Class<?> clazz, String field)
+	{
+		return read_char(null, reflection.find_declared_field(clazz, field));
+	}
+
+	public static final char read_member_char(Object obj, String field)
+	{
+		return read_char(obj, object_field_offset(obj.getClass(), field));
+	}
+
+	public static final char read_static_char(Class<?> clazz, String field)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		return read_char(static_field_base(f), static_field_offset(f));
+	}
+
+	// boolean
+	public static final void write(Object obj, Field field, boolean value)
+	{
+		if (Modifier.isStatic(field.getModifiers()))
+			write(static_field_base(field), static_field_offset(field), value);
+		else
+			write(obj, object_field_offset(field), value);
+	}
+
+	public static final void write(Object obj, String field, boolean value)
+	{
+		write(obj, reflection.find_declared_field(obj, field), value);
+	}
+
+	public static final void write(Class<?> clazz, String field, boolean value)
+	{
+		write(null, reflection.find_declared_field(clazz, field), value);
+	}
+
+	public static final void write_member(Object obj, String field, boolean value)
+	{
+		write(obj, object_field_offset(obj.getClass(), field), value);
+	}
+
+	public static final void write_static(Class<?> clazz, String field, boolean value)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		write(static_field_base(f), static_field_offset(f), value);
+	}
+
+	public static final boolean read_bool(Object obj, Field field)
+	{
+		if (Modifier.isStatic(field.getModifiers()))
+			return read_bool(static_field_base(field), static_field_offset(field));
+		else
+			return read_bool(obj, object_field_offset(field));
+	}
+
+	public static final boolean read_bool(Object obj, String field)
+	{
+		return read_bool(obj, reflection.find_declared_field(obj, field));
+	}
+
+	public static final boolean read_bool(Class<?> clazz, String field)
+	{
+		return read_bool(null, reflection.find_declared_field(clazz, field));
+	}
+
+	public static final boolean read_member_bool(Object obj, String field)
+	{
+		return read_bool(obj, object_field_offset(obj.getClass(), field));
+	}
+
+	public static final boolean read_static_bool(Class<?> clazz, String field)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		return read_bool(static_field_base(f), static_field_offset(f));
+	}
+
+	// int
+	public static final void write(Object obj, Field field, int value)
+	{
+		if (Modifier.isStatic(field.getModifiers()))
+			write(static_field_base(field), static_field_offset(field), value);
+		else
+			write(obj, object_field_offset(field), value);
+	}
+
+	public static final void write(Object obj, String field, int value)
+	{
+		write(obj, reflection.find_declared_field(obj, field), value);
+	}
+
+	public static final void write(Class<?> clazz, String field, int value)
+	{
+		write(null, reflection.find_declared_field(clazz, field), value);
+	}
+
+	public static final void write_member(Object obj, String field, int value)
+	{
+		write(obj, object_field_offset(obj.getClass(), field), value);
+	}
+
+	public static final void write_static(Class<?> clazz, String field, int value)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		write(static_field_base(f), static_field_offset(f), value);
+	}
+
+	public static final int read_int(Object obj, Field field)
+	{
+		if (Modifier.isStatic(field.getModifiers()))
+			return read_int(static_field_base(field), static_field_offset(field));
+		else
+			return read_int(obj, object_field_offset(field));
+	}
+
+	public static final int read_int(Object obj, String field)
+	{
+		return read_int(obj, reflection.find_declared_field(obj, field));
+	}
+
+	public static final int read_int(Class<?> clazz, String field)
+	{
+		return read_int(null, reflection.find_declared_field(clazz, field));
+	}
+
+	public static final int read_member_int(Object obj, String field)
+	{
+		return read_int(obj, object_field_offset(obj.getClass(), field));
+	}
+
+	public static final int read_static_int(Class<?> clazz, String field)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		return read_int(static_field_base(f), static_field_offset(f));
+	}
+
+	// long
+	public static final void write(Object obj, Field field, long value)
+	{
+		if (Modifier.isStatic(field.getModifiers()))
+			write(static_field_base(field), static_field_offset(field), value);
+		else
+			write(obj, object_field_offset(field), value);
+	}
+
+	public static final void write(Object obj, String field, long value)
+	{
+		write(obj, reflection.find_declared_field(obj, field), value);
+	}
+
+	public static final void write(Class<?> clazz, String field, long value)
+	{
+		write(null, reflection.find_declared_field(clazz, field), value);
+	}
+
+	public static final void write_member(Object obj, String field, long value)
+	{
+		write(obj, object_field_offset(obj.getClass(), field), value);
+	}
+
+	public static final void write_static(Class<?> clazz, String field, long value)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		write(static_field_base(f), static_field_offset(f), value);
+	}
+
+	public static final long read_long(Object obj, Field field)
+	{
+		if (Modifier.isStatic(field.getModifiers()))
+			return read_long(static_field_base(field), static_field_offset(field));
+		else
+			return read_long(obj, object_field_offset(field));
+	}
+
+	public static final long read_long(Object obj, String field)
+	{
+		return read_long(obj, reflection.find_declared_field(obj, field));
+	}
+
+	public static final long read_long(Class<?> clazz, String field)
+	{
+		return read_long(null, reflection.find_declared_field(clazz, field));
+	}
+
+	public static final long read_member_long(Object obj, String field)
+	{
+		return read_long(obj, object_field_offset(obj.getClass(), field));
+	}
+
+	public static final long read_static_long(Class<?> clazz, String field)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		return read_long(static_field_base(f), static_field_offset(f));
+	}
+
+	// float
+	public static final void write(Object obj, Field field, float value)
+	{
+		if (Modifier.isStatic(field.getModifiers()))
+			write(static_field_base(field), static_field_offset(field), value);
+		else
+			write(obj, object_field_offset(field), value);
+	}
+
+	public static final void write(Object obj, String field, float value)
+	{
+		write(obj, reflection.find_declared_field(obj, field), value);
+	}
+
+	public static final void write(Class<?> clazz, String field, float value)
+	{
+		write(null, reflection.find_declared_field(clazz, field), value);
+	}
+
+	public static final void write_member(Object obj, String field, float value)
+	{
+		write(obj, object_field_offset(obj.getClass(), field), value);
+	}
+
+	public static final void write_static(Class<?> clazz, String field, float value)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		write(static_field_base(f), static_field_offset(f), value);
+	}
+
+	public static final float read_float(Object obj, Field field)
+	{
+		if (Modifier.isStatic(field.getModifiers()))
+			return read_float(static_field_base(field), static_field_offset(field));
+		else
+			return read_float(obj, object_field_offset(field));
+	}
+
+	public static final float read_float(Object obj, String field)
+	{
+		return read_float(obj, reflection.find_declared_field(obj, field));
+	}
+
+	public static final float read_float(Class<?> clazz, String field)
+	{
+		return read_float(null, reflection.find_declared_field(clazz, field));
+	}
+
+	public static final float read_member_float(Object obj, String field)
+	{
+		return read_float(obj, object_field_offset(obj.getClass(), field));
+	}
+
+	public static final float read_static_float(Class<?> clazz, String field)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		return read_float(static_field_base(f), static_field_offset(f));
+	}
+
+	// double
+	public static final void write(Object obj, Field field, double value)
+	{
+		if (Modifier.isStatic(field.getModifiers()))
+			write(static_field_base(field), static_field_offset(field), value);
+		else
+			write(obj, object_field_offset(field), value);
+	}
+
+	public static final void write(Object obj, String field, double value)
+	{
+		write(obj, reflection.find_declared_field(obj, field), value);
+	}
+
+	public static final void write(Class<?> clazz, String field, double value)
+	{
+		write(null, reflection.find_declared_field(clazz, field), value);
+	}
+
+	public static final void write_member(Object obj, String field, double value)
+	{
+		write(obj, object_field_offset(obj.getClass(), field), value);
+	}
+
+	public static final void write_static(Class<?> clazz, String field, double value)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		write(static_field_base(f), static_field_offset(f), value);
+	}
+
+	public static final double read_double(Object obj, Field field)
+	{
+		if (Modifier.isStatic(field.getModifiers()))
+			return read_double(static_field_base(field), static_field_offset(field));
+		else
+			return read_double(obj, object_field_offset(field));
+	}
+
+	public static final double read_double(Object obj, String field)
+	{
+		return read_double(obj, reflection.find_declared_field(obj, field));
+	}
+
+	public static final double read_double(Class<?> clazz, String field)
+	{
+		return read_double(null, reflection.find_declared_field(clazz, field));
+	}
+
+	public static final double read_member_double(Object obj, String field)
+	{
+		return read_double(obj, object_field_offset(obj.getClass(), field));
+	}
+
+	public static final double read_static_double(Class<?> clazz, String field)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		return read_double(static_field_base(f), static_field_offset(f));
+	}
+
+	/**
+	 * 直接令loader加载指定class<br>
+	 * 绕过类加载器： 直接向JVM注册类，不经过ClassLoader体系.<br>
+	 * 无依赖解析：不自动加载依赖类，如果依赖类不存在则直接抛出java.lang.NoClassDefFoundError<br>
+	 * 无安全检查： 跳过字节码验证、包可见性检查等<br>
+	 * 内存驻留： 定义的类不会被 GC 回收<br>
+	 * 
+	 * @param name
+	 * @param b
+	 * @param off
+	 * @param len
+	 * @param loader
+	 * @param protection_domain
+	 * @return
+	 */
+	public static final Class<?> define_class(String name, byte[] b, int off, int len, ClassLoader loader, ProtectionDomain protection_domain)
+	{
+		try
+		{
+			return (Class<?>) defineClass.invoke(instance_jdk_internal_misc_Unsafe, name, b, off, len, loader, protection_domain);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("define class '" + name + "' failed", ex);
+		}
+	}
+
+	/**
+	 * 内存屏障，保证屏障后的所有读写操作不会重排到屏障前的全部读操作完成
+	 */
+	public static final void load_fence()
+	{
+		try
+		{
+			loadFence.invoke(instance_jdk_internal_misc_Unsafe);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("insert load fence failed", ex);
+		}
+	}
+
+	/**
+	 * 内存屏障，保证屏障后的所有读写操作不会重排到屏障前的全部写操作完成
+	 */
+	public static final void store_fence()
+	{
+		try
+		{
+			storeFence.invoke(instance_jdk_internal_misc_Unsafe);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("insert store fence failed", ex);
+		}
+	}
+
+	/**
+	 * 全内存屏障，保证屏障后的所有读写操作不会重排到屏障前的全部读写操作完成
+	 */
+	public static final void full_fence()
+	{
+		try
+		{
+			fullFence.invoke(instance_jdk_internal_misc_Unsafe);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("insert full fence failed", ex);
+		}
+	}
+
+	/**
+	 * 读内存屏障，保证屏障后的所有读操作不会重排到屏障前的全部读操作完成
+	 */
+	public static final void load_load_fence()
+	{
+		try
+		{
+			loadLoadFence.invoke(instance_jdk_internal_misc_Unsafe);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("insert load-load fence failed", ex);
+		}
+	}
+
+	/**
+	 * 写内存屏障，保证屏障后的所有写操作不会重排到屏障前的全部写操作完成
+	 */
+	public static final void store_store_fence()
+	{
+		try
+		{
+			storeStoreFence.invoke(instance_jdk_internal_misc_Unsafe);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("insert store-store fence failed", ex);
+		}
+	}
+
+	/**
+	 * 判断目标类是否未初始化
+	 * 
+	 * @param clazz
+	 * @return
+	 */
+	public static final boolean should_be_initialized(Class<?> clazz)
+	{
+		try
+		{
+			return (boolean) shouldBeInitialized0.invoke(instance_jdk_internal_misc_Unsafe, clazz);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("class '" + clazz + "' check should be initialized failed", ex);
+		}
+	}
+
+	/**
+	 * 如果目标类未初始化则初始化目标类
+	 * 
+	 * @param clazz
+	 */
+	public static final void ensure_class_initialized(Class<?> clazz)
+	{
+		try
+		{
+			ensureClassInitialized0.invoke(instance_jdk_internal_misc_Unsafe, clazz);
+		}
+		catch (Throwable ex)
+		{
+			throw new java.lang.InternalError("class '" + clazz + "' ensure initialized failed", ex);
+		}
+	}
+
+	public static final <_T> Field first_memory_member_field(Class<_T> clazz)
+	{
+		Field[] fields = reflection.find_declared_fields(clazz);
+		if (fields.length == 0)
+			return null;
+		else
+		{
+			Field result = null;
+			long min_offset = Long.MAX_VALUE;
+			for (int idx = 0; idx < fields.length; ++idx)
+			{
+				Field current = fields[idx];
+				if (!Modifier.isStatic(current.getModifiers()))
+				{
+					long current_offset = unsafe.object_field_offset(current);
+					if (current_offset < min_offset)
+					{
+						result = current;
+						min_offset = current_offset;
+					}
+				}
+			}
+			return result;
+		}
+	}
+
+	/**
+	 * 获取内存排布中最后一个字段，按照实际内存中字段排布顺序索引。<br>
+	 * 内存中字段顺序可能有重排，不一定与声明顺序一致。<br>
+	 * 
+	 * @param <_T>
+	 * @param clazz
+	 * @return
+	 */
+	public static final <_T> Field last_memory_member_field(Class<_T> clazz)
+	{
+		Field[] fields = reflection.find_declared_fields(clazz);
+		if (fields.length == 0)
+			return null;
+		else
+		{
+			Field result = null;
+			long max_offset = Long.MIN_VALUE;
+			for (int idx = 0; idx < fields.length; ++idx)
+			{
+				Field current = fields[idx];
+				if (!Modifier.isStatic(current.getModifiers()))
+				{
+					long current_offset = unsafe.object_field_offset(current);
+					if (current_offset > max_offset)
+					{
+						result = current;
+						max_offset = current_offset;
+					}
+				}
+
+			}
+			return result;
+		}
+	}
+
+	/**
+	 * 获取该类型的成员字段终止偏移量
+	 * 
+	 * @param <_T>
+	 * @param clazz
+	 * @return 最后一个成员字段的偏移量+类型长度，该偏移量是字段末尾的下一个字节。
+	 */
+	public static final <_T> long bottom_offset(Class<_T> clazz)
+	{
+		if (clazz == Object.class)
+			return object_model.oop_base_offset_in_bytes();// 即便没有字段，也要计算对象头的偏移量
+		Field last = last_memory_member_field(clazz);
+		if (last == null)
+			return bottom_offset(clazz.getSuperclass());
+		else
+			return unsafe.object_field_offset(last) + java_type.sizeof(last.getType());
+	}
+
+	/**
+	 * 获取该类型的成员字段起始偏移量
+	 * 
+	 * @param <_T>
+	 * @param clazz
+	 * @return 该索引是第一个成员字段的第一个字节
+	 */
+	public static final <_T> long top_offset(Class<_T> clazz)
+	{
+		if (clazz == Object.class)
+			return object_model.oop_base_offset_in_bytes();
+		Field first = first_memory_member_field(clazz);
+		if (first == null)
+			return bottom_offset(clazz.getSuperclass());
+		else
+			return unsafe.object_field_offset(first);
+	}
+
+	/**
+	 * 复制指定类的所有字段值。<br>
+	 * 对于继承的对象，需要分别调用此方法复制所有父类的字段值。<br>
+	 * 
+	 * @param <_T>
+	 * @param clazz
+	 * @param src
+	 * @param dest
+	 */
+	public static final <_T> void copy_member_fields(Class<_T> clazz, _T src, _T dest)
+	{
+		long top_offset = top_offset(clazz);
+		long bottom_offset = bottom_offset(clazz);
+		unsafe.memcpy(dest, top_offset, src, top_offset, bottom_offset - top_offset);
+	}
+
+	public static final <_T> void copy_member_fields(_T src, _T dest, long top_offset, long bottom_offset)
+	{
+		unsafe.memcpy(dest, top_offset, src, top_offset, bottom_offset - top_offset);
+	}
+
+	/**
+	 * 大端bit掩码。<br>
+	 * bit_mask[0]对应0b10000000，bit_mask[7]对应0b00000001.<br>
+	 */
+	public static final int[] be_bit_mask = new int[8];
+
+	public static final int[] le_bit_mask = new int[8];
+
+	static
+	{
+		for (int bit = 0; bit < 8; ++bit)
+		{
+			be_bit_mask[bit] = (0b1 << (7 - bit));
+			le_bit_mask[bit] = (0b1 << bit);
+		}
+	}
+
+	/**
+	 * 读取bit索引区间内的值
+	 * 
+	 * @param bit_masks 必须是be_bit_mask或le_bit_mask
+	 * @param base      起始地址
+	 * @param offset    起始地址算起的字节索引
+	 * @param bit_begin 从offset开始算的起始bit位
+	 * @param num       要读取的bit位数量
+	 * @return
+	 */
+	private static final long read_bits(final int[] bit_masks, Object base, long offset, int bit_begin, int num)
+	{
+		long value = 0;
+		byte b = 0;
+		for (int bit = 0; bit < num; ++bit)
+		{
+			int bit_pos = bit_begin + bit;
+			int bit_in_byte_pos = bit_pos % 8;
+			if (bit_in_byte_pos == 0 || bit == 0)// 第一个bit所在字节无论如何都要读取
+			{
+				// 仅在该bit位于新byte时读取一次字节值，读取后将缓存
+				b = read_byte(base, offset + (bit_pos / 8));
+			}
+			if ((b & bit_masks[bit_in_byte_pos]) != 0)
+			{
+				value |= (0b1L << bit);
+			}
+		}
+		return value;
+	}
+
+	public static final long le_read_bits(Object base, long offset, int bit_begin, int num)
+	{
+		return read_bits(le_bit_mask, base, offset, bit_begin, num);
+	}
+
+	private static final void write_bits(final int[] bit_masks, Object base, long offset, int bit_begin, long bits, int num)
+	{
+		byte b = 0;
+		long byte_offset;
+		for (int bit = 0; bit < num; ++bit)
+		{
+			int bit_pos = bit_begin + bit;
+			int bit_in_byte_pos = bit_pos % 8;
+			if (bit_in_byte_pos == 0 || bit == 0)
+			{
+				byte_offset = offset + (bit_pos / 8);
+				b = read_byte(base, byte_offset);
+			}
+			b = (byte) ((b & ~bit_masks[bit_in_byte_pos])
+					| (((bits >> bit) & 0b1L) * bit_masks[bit_in_byte_pos]));
+			if (bit_in_byte_pos == 7 || bit == num - 1)
+			{
+				// 最后一个bit时或不足一个字节的剩余部分写入字节
+				byte_offset = offset + (bit_pos / 8);
+				write(base, byte_offset, b);
+			}
+		}
+	}
+
+	public static final void le_write_bits(Object base, long offset, int bit_begin, long bits, int num)
+	{
+		write_bits(le_bit_mask, base, offset, bit_begin, bits, num);
+	}
+}
