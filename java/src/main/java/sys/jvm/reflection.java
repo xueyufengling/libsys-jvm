@@ -419,10 +419,21 @@ public abstract class reflection
 	 * @param arg_types
 	 * @return
 	 */
-	public static final boolean is_static(Class<?> clazz, String method_name, Class<?>... arg_types)
+	public static final boolean is_static_method(Class<?> clazz, String method_name, Class<?>... arg_types)
 	{
 		Method m = find_declared_method(clazz, method_name, arg_types);
 		return Modifier.isStatic(m.getModifiers());
+	}
+
+	public static final boolean is_static(Class<?> clazz, String field_name)
+	{
+		Field f = find_declared_field(clazz, field_name);
+		return Modifier.isStatic(f.getModifiers());
+	}
+
+	public static final boolean is_static(Member memb)
+	{
+		return Modifier.isStatic(memb.getModifiers());
 	}
 
 	/**
@@ -610,10 +621,10 @@ public abstract class reflection
 	 * 
 	 * @param obj
 	 * @param field
-	 * @param default_value
+	 * @param default_val
 	 * @return
 	 */
-	public static final Object read_or_default(Object obj, Field field, Object default_value)
+	public static final Object read(Object obj, Field field, Object default_val)
 	{
 		try
 		{
@@ -621,11 +632,11 @@ public abstract class reflection
 		}
 		catch (Throwable ex)
 		{
-			return default_value;
+			return default_val;
 		}
 	}
 
-	public static final Object read_or_default(Object obj, String field_name, Object default_value)
+	public static final Object read(Object obj, String field_name, Object default_val)
 	{
 		try
 		{
@@ -633,11 +644,11 @@ public abstract class reflection
 		}
 		catch (Throwable ex)
 		{
-			return default_value;
+			return default_val;
 		}
 	}
 
-	public static final Object read_or_default(Class<?> clazz, String field_name, Object default_value)
+	public static final Object read(Class<?> clazz, String field_name, Object default_val)
 	{
 		try
 		{
@@ -645,7 +656,7 @@ public abstract class reflection
 		}
 		catch (Throwable ex)
 		{
-			return default_value;
+			return default_val;
 		}
 	}
 
@@ -964,6 +975,23 @@ public abstract class reflection
 	public static final boolean is(Class<?> son, Class<?> parent)
 	{
 		return parent.isAssignableFrom(son);
+	}
+
+	/**
+	 * 判断一个类是否具有某个成员
+	 * 
+	 * @param obj
+	 * @param memb
+	 * @return
+	 */
+	public static final boolean has(Object obj, Member memb)
+	{
+		return is(obj.getClass(), memb.getDeclaringClass());
+	}
+
+	public static final boolean has(Class<?> clazz, Member memb)
+	{
+		return is(clazz, memb.getDeclaringClass());
 	}
 
 	/**
@@ -1568,6 +1596,11 @@ public abstract class reflection
 		return stack_walker.walk(stack -> stack.skip(skip_frame_count).findFirst().get().getDeclaringClass());
 	}
 
+	/**
+	 * 获取调用直接调用此函数的函数所属类
+	 * 
+	 * @return
+	 */
 	public static final Class<?> get_caller_class()
 	{
 		return unwind_class(3);

@@ -2,9 +2,9 @@
 
 ## libsys-jvm
 
-    libsys-jvm provides system-level internal operations for OpenJDK 21+, featuring both pure Java and pure C++ implementations.
-    The Java implementation includes fully trusted reflection, handle manipulation, internal Unsafe operations, high-performance Java-layer FFI based on Project Panama, and a supporting C++ type and object model parser.
-    The C++ implementation enables cross-process manipulation of the target JVM, method invocation within the target JVM, and the retrieval of upcall functions based on Project Panama.
+    libsys-jvm provides system-level internal operations for OpenJDK 21+, featuring both pure Java and pure C++ implementations.<br>
+    The Java implementation includes fully trusted reflection, handle manipulation, internal Unsafe operations, high-performance Java-layer FFI based on Project Panama, and a supporting C++ type and object model parser.<br>
+    The C++ implementation enables cross-process manipulation of the target JVM, method invocation within the target JVM, and the retrieval of upcall functions based on Project Panama.<br>
 
 # License
 

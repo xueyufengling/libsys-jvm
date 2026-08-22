@@ -1718,7 +1718,7 @@ public final class unsafe
 	 */
 	public static final void write(Object obj, Field field, Object value)
 	{
-		if (Modifier.isStatic(field.getModifiers()))
+		if (reflection.is_static(field))
 			write(static_field_base(field), static_field_offset(field), value);
 		else
 			write(obj, object_field_offset(field), value);
@@ -1745,27 +1745,47 @@ public final class unsafe
 		write(static_field_base(f), static_field_offset(f), value);
 	}
 
-	public static final Object read_reference(Object obj, Field field)
+	// 读
+
+	// Object
+	public static final Object read_member_reference(Object obj, Field field)
 	{
-		if (Modifier.isStatic(field.getModifiers()))
-			return read_reference(static_field_base(field), static_field_offset(field));
+		return read_reference(obj, object_field_offset(field));
+	}
+
+	public static final Object read_member_reference(Object obj, Field field, Object default_val)
+	{
+		if (field != null && reflection.has(obj, field) && !reflection.is_static(field))
+			return read_member_reference(obj, field);
 		else
-			return read_reference(obj, object_field_offset(field));
+			return default_val;
 	}
 
-	public static final Object read_reference(Object obj, String field)
+	public static final Object read_static_reference(Field field)
 	{
-		return read_reference(obj, reflection.find_declared_field(obj, field));
+		return read_reference(static_field_base(field), static_field_offset(field));
 	}
 
-	public static final Object read_reference(Class<?> clazz, String field)
+	public static final Object read_static_reference(Object obj, Field field, Object default_val)
 	{
-		return read_reference(null, reflection.find_declared_field(clazz, field));
+		if (field != null && reflection.has(obj, field) && reflection.is_static(field))
+			return read_static_reference(field);
+		else
+			return default_val;
 	}
 
 	public static final Object read_member_reference(Object obj, String field)
 	{
 		return read_reference(obj, object_field_offset(obj.getClass(), field));
+	}
+
+	public static final Object read_member_reference(Object obj, String field, Object default_val)
+	{
+		Field f = reflection.find_declared_field(obj.getClass(), field);
+		if (f != null && !reflection.is_static(f))
+			return read_member_reference(obj, f);
+		else
+			return default_val;
 	}
 
 	public static final Object read_static_reference(Class<?> clazz, String field)
@@ -1774,234 +1794,98 @@ public final class unsafe
 		return read_reference(static_field_base(f), static_field_offset(f));
 	}
 
-	// byte
-	public static final void write(Object obj, Field field, byte value)
-	{
-		if (Modifier.isStatic(field.getModifiers()))
-			write(static_field_base(field), static_field_offset(field), value);
-		else
-			write(obj, object_field_offset(field), value);
-	}
-
-	public static final void write(Object obj, String field, byte value)
-	{
-		write(obj, reflection.find_declared_field(obj, field), value);
-	}
-
-	public static final void write(Class<?> clazz, String field, byte value)
-	{
-		write(null, reflection.find_declared_field(clazz, field), value);
-	}
-
-	public static final void write_member(Object obj, String field, byte value)
-	{
-		write(obj, object_field_offset(obj.getClass(), field), value);
-	}
-
-	public static final void write_static(Class<?> clazz, String field, byte value)
+	public static final Object read_static_reference(Class<?> clazz, String field, Object default_val)
 	{
 		Field f = reflection.find_declared_field(clazz, field);
-		write(static_field_base(f), static_field_offset(f), value);
-	}
-
-	public static final byte read_byte(Object obj, Field field)
-	{
-		if (Modifier.isStatic(field.getModifiers()))
-			return read_byte(static_field_base(field), static_field_offset(field));
+		if (f != null && reflection.is_static(f))
+			return read_static_reference(f);
 		else
-			return read_byte(obj, object_field_offset(field));
+			return default_val;
 	}
 
-	public static final byte read_byte(Object obj, String field)
+	public static final Object read_reference(Object obj, Field field)
 	{
-		return read_byte(obj, reflection.find_declared_field(obj, field));
+		if (reflection.is_static(field))
+			return read_static_reference(field);
+		else
+			return read_member_reference(obj, field);
 	}
 
-	public static final byte read_byte(Class<?> clazz, String field)
+	public static final Object read_reference(Object obj, Field field, Object default_val)
 	{
-		return read_byte(null, reflection.find_declared_field(clazz, field));
+		if (field != null && reflection.has(obj, field))
+			return read_reference(obj, field);
+		else
+			return default_val;
 	}
 
-	public static final byte read_member_byte(Object obj, String field)
+	public static final Object read_reference(Object obj, String field)
 	{
-		return read_byte(obj, object_field_offset(obj.getClass(), field));
+		return read_reference(obj, reflection.find_declared_field(obj, field));
 	}
 
-	public static final byte read_static_byte(Class<?> clazz, String field)
+	public static final Object read_reference(Object obj, String field, Object default_val)
+	{
+		Field f = reflection.find_declared_field(obj.getClass(), field);
+		if (f != null)
+			return read_reference(obj, f);
+		else
+			return default_val;
+	}
+
+	public static final Object read_reference(Class<?> clazz, String field)
+	{
+		return read_reference(clazz, reflection.find_declared_field(clazz, field));
+	}
+
+	public static final Object read_reference(Class<?> clazz, String field, Object default_val)
 	{
 		Field f = reflection.find_declared_field(clazz, field);
-		return read_byte(static_field_base(f), static_field_offset(f));
-	}
-
-	// short
-	public static final void write(Object obj, Field field, short value)
-	{
-		if (Modifier.isStatic(field.getModifiers()))
-			write(static_field_base(field), static_field_offset(field), value);
+		if (f != null)
+			return read_reference(null, f);
 		else
-			write(obj, object_field_offset(field), value);
-	}
-
-	public static final void write(Object obj, String field, short value)
-	{
-		write(obj, reflection.find_declared_field(obj, field), value);
-	}
-
-	public static final void write(Class<?> clazz, String field, short value)
-	{
-		write(null, reflection.find_declared_field(clazz, field), value);
-	}
-
-	public static final void write_member(Object obj, String field, short value)
-	{
-		write(obj, object_field_offset(obj.getClass(), field), value);
-	}
-
-	public static final void write_static(Class<?> clazz, String field, short value)
-	{
-		Field f = reflection.find_declared_field(clazz, field);
-		write(static_field_base(f), static_field_offset(f), value);
-	}
-
-	public static final short read_short(Object obj, Field field)
-	{
-		if (Modifier.isStatic(field.getModifiers()))
-			return read_short(static_field_base(field), static_field_offset(field));
-		else
-			return read_short(obj, object_field_offset(field));
-	}
-
-	public static final short read_short(Object obj, String field)
-	{
-		return read_short(obj, reflection.find_declared_field(obj, field));
-	}
-
-	public static final short read_short(Class<?> clazz, String field)
-	{
-		return read_short(null, reflection.find_declared_field(clazz, field));
-	}
-
-	public static final short read_member_short(Object obj, String field)
-	{
-		return read_short(obj, object_field_offset(obj.getClass(), field));
-	}
-
-	public static final short read_static_short(Class<?> clazz, String field)
-	{
-		Field f = reflection.find_declared_field(clazz, field);
-		return read_short(static_field_base(f), static_field_offset(f));
-	}
-
-	// char
-	public static final void write(Object obj, Field field, char value)
-	{
-		if (Modifier.isStatic(field.getModifiers()))
-			write(static_field_base(field), static_field_offset(field), value);
-		else
-			write(obj, object_field_offset(field), value);
-	}
-
-	public static final void write(Object obj, String field, char value)
-	{
-		write(obj, reflection.find_declared_field(obj, field), value);
-	}
-
-	public static final void write(Class<?> clazz, String field, char value)
-	{
-		write(null, reflection.find_declared_field(clazz, field), value);
-	}
-
-	public static final void write_member(Object obj, String field, char value)
-	{
-		write(obj, object_field_offset(obj.getClass(), field), value);
-	}
-
-	public static final void write_static(Class<?> clazz, String field, char value)
-	{
-		Field f = reflection.find_declared_field(clazz, field);
-		write(static_field_base(f), static_field_offset(f), value);
-	}
-
-	public static final char read_char(Object obj, Field field)
-	{
-		if (Modifier.isStatic(field.getModifiers()))
-			return read_char(static_field_base(field), static_field_offset(field));
-		else
-			return read_char(obj, object_field_offset(field));
-	}
-
-	public static final char read_char(Object obj, String field)
-	{
-		return read_char(obj, reflection.find_declared_field(obj, field));
-	}
-
-	public static final char read_char(Class<?> clazz, String field)
-	{
-		return read_char(null, reflection.find_declared_field(clazz, field));
-	}
-
-	public static final char read_member_char(Object obj, String field)
-	{
-		return read_char(obj, object_field_offset(obj.getClass(), field));
-	}
-
-	public static final char read_static_char(Class<?> clazz, String field)
-	{
-		Field f = reflection.find_declared_field(clazz, field);
-		return read_char(static_field_base(f), static_field_offset(f));
+			return default_val;
 	}
 
 	// boolean
-	public static final void write(Object obj, Field field, boolean value)
+	public static final boolean read_member_bool(Object obj, Field field)
 	{
-		if (Modifier.isStatic(field.getModifiers()))
-			write(static_field_base(field), static_field_offset(field), value);
+		return read_bool(obj, object_field_offset(field));
+	}
+
+	public static final boolean read_member_bool(Object obj, Field field, boolean default_val)
+	{
+		if (field != null && reflection.has(obj, field) && !reflection.is_static(field))
+			return read_member_bool(obj, field);
 		else
-			write(obj, object_field_offset(field), value);
+			return default_val;
 	}
 
-	public static final void write(Object obj, String field, boolean value)
+	public static final boolean read_static_bool(Field field)
 	{
-		write(obj, reflection.find_declared_field(obj, field), value);
+		return read_bool(static_field_base(field), static_field_offset(field));
 	}
 
-	public static final void write(Class<?> clazz, String field, boolean value)
+	public static final boolean read_static_bool(Object obj, Field field, boolean default_val)
 	{
-		write(null, reflection.find_declared_field(clazz, field), value);
-	}
-
-	public static final void write_member(Object obj, String field, boolean value)
-	{
-		write(obj, object_field_offset(obj.getClass(), field), value);
-	}
-
-	public static final void write_static(Class<?> clazz, String field, boolean value)
-	{
-		Field f = reflection.find_declared_field(clazz, field);
-		write(static_field_base(f), static_field_offset(f), value);
-	}
-
-	public static final boolean read_bool(Object obj, Field field)
-	{
-		if (Modifier.isStatic(field.getModifiers()))
-			return read_bool(static_field_base(field), static_field_offset(field));
+		if (field != null && reflection.has(obj, field) && reflection.is_static(field))
+			return read_static_bool(field);
 		else
-			return read_bool(obj, object_field_offset(field));
-	}
-
-	public static final boolean read_bool(Object obj, String field)
-	{
-		return read_bool(obj, reflection.find_declared_field(obj, field));
-	}
-
-	public static final boolean read_bool(Class<?> clazz, String field)
-	{
-		return read_bool(null, reflection.find_declared_field(clazz, field));
+			return default_val;
 	}
 
 	public static final boolean read_member_bool(Object obj, String field)
 	{
 		return read_bool(obj, object_field_offset(obj.getClass(), field));
+	}
+
+	public static final boolean read_member_bool(Object obj, String field, boolean default_val)
+	{
+		Field f = reflection.find_declared_field(obj.getClass(), field);
+		if (f != null && !reflection.is_static(f))
+			return read_member_bool(obj, f);
+		else
+			return default_val;
 	}
 
 	public static final boolean read_static_bool(Class<?> clazz, String field)
@@ -2010,57 +1894,398 @@ public final class unsafe
 		return read_bool(static_field_base(f), static_field_offset(f));
 	}
 
-	// int
-	public static final void write(Object obj, Field field, int value)
-	{
-		if (Modifier.isStatic(field.getModifiers()))
-			write(static_field_base(field), static_field_offset(field), value);
-		else
-			write(obj, object_field_offset(field), value);
-	}
-
-	public static final void write(Object obj, String field, int value)
-	{
-		write(obj, reflection.find_declared_field(obj, field), value);
-	}
-
-	public static final void write(Class<?> clazz, String field, int value)
-	{
-		write(null, reflection.find_declared_field(clazz, field), value);
-	}
-
-	public static final void write_member(Object obj, String field, int value)
-	{
-		write(obj, object_field_offset(obj.getClass(), field), value);
-	}
-
-	public static final void write_static(Class<?> clazz, String field, int value)
+	public static final boolean read_static_bool(Class<?> clazz, String field, boolean default_val)
 	{
 		Field f = reflection.find_declared_field(clazz, field);
-		write(static_field_base(f), static_field_offset(f), value);
-	}
-
-	public static final int read_int(Object obj, Field field)
-	{
-		if (Modifier.isStatic(field.getModifiers()))
-			return read_int(static_field_base(field), static_field_offset(field));
+		if (f != null && reflection.is_static(f))
+			return read_static_bool(f);
 		else
-			return read_int(obj, object_field_offset(field));
+			return default_val;
 	}
 
-	public static final int read_int(Object obj, String field)
+	public static final boolean read_bool(Object obj, Field field)
 	{
-		return read_int(obj, reflection.find_declared_field(obj, field));
+		if (reflection.is_static(field))
+			return read_static_bool(field);
+		else
+			return read_member_bool(obj, field);
 	}
 
-	public static final int read_int(Class<?> clazz, String field)
+	public static final boolean read_bool(Object obj, Field field, boolean default_val)
 	{
-		return read_int(null, reflection.find_declared_field(clazz, field));
+		if (field != null && reflection.has(obj, field))
+			return read_bool(obj, field);
+		else
+			return default_val;
+	}
+
+	public static final boolean read_bool(Object obj, String field)
+	{
+		return read_bool(obj, reflection.find_declared_field(obj, field));
+	}
+
+	public static final boolean read_bool(Object obj, String field, boolean default_val)
+	{
+		Field f = reflection.find_declared_field(obj.getClass(), field);
+		if (f != null)
+			return read_bool(obj, f);
+		else
+			return default_val;
+	}
+
+	public static final boolean read_bool(Class<?> clazz, String field)
+	{
+		return read_bool(clazz, reflection.find_declared_field(clazz, field));
+	}
+
+	public static final boolean read_bool(Class<?> clazz, String field, boolean default_val)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		if (f != null)
+			return read_bool(null, f);
+		else
+			return default_val;
+	}
+
+	// byte
+	public static final byte read_member_byte(Object obj, Field field)
+	{
+		return read_byte(obj, object_field_offset(field));
+	}
+
+	public static final byte read_member_byte(Object obj, Field field, byte default_val)
+	{
+		if (field != null && reflection.has(obj, field) && !reflection.is_static(field))
+			return read_member_byte(obj, field);
+		else
+			return default_val;
+	}
+
+	public static final byte read_static_byte(Field field)
+	{
+		return read_byte(static_field_base(field), static_field_offset(field));
+	}
+
+	public static final byte read_static_byte(Object obj, Field field, byte default_val)
+	{
+		if (field != null && reflection.has(obj, field) && reflection.is_static(field))
+			return read_static_byte(field);
+		else
+			return default_val;
+	}
+
+	public static final byte read_member_byte(Object obj, String field)
+	{
+		return read_byte(obj, object_field_offset(obj.getClass(), field));
+	}
+
+	public static final byte read_member_byte(Object obj, String field, byte default_val)
+	{
+		Field f = reflection.find_declared_field(obj.getClass(), field);
+		if (f != null && !reflection.is_static(f))
+			return read_member_byte(obj, f);
+		else
+			return default_val;
+	}
+
+	public static final byte read_static_byte(Class<?> clazz, String field)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		return read_byte(static_field_base(f), static_field_offset(f));
+	}
+
+	public static final byte read_static_byte(Class<?> clazz, String field, byte default_val)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		if (f != null && reflection.is_static(f))
+			return read_static_byte(f);
+		else
+			return default_val;
+	}
+
+	public static final byte read_byte(Object obj, Field field)
+	{
+		if (reflection.is_static(field))
+			return read_static_byte(field);
+		else
+			return read_member_byte(obj, field);
+	}
+
+	public static final byte read_byte(Object obj, Field field, byte default_val)
+	{
+		if (field != null && reflection.has(obj, field))
+			return read_byte(obj, field);
+		else
+			return default_val;
+	}
+
+	public static final byte read_byte(Object obj, String field)
+	{
+		return read_byte(obj, reflection.find_declared_field(obj, field));
+	}
+
+	public static final byte read_byte(Object obj, String field, byte default_val)
+	{
+		Field f = reflection.find_declared_field(obj.getClass(), field);
+		if (f != null)
+			return read_byte(obj, f);
+		else
+			return default_val;
+	}
+
+	public static final byte read_byte(Class<?> clazz, String field)
+	{
+		return read_byte(clazz, reflection.find_declared_field(clazz, field));
+	}
+
+	public static final byte read_byte(Class<?> clazz, String field, byte default_val)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		if (f != null)
+			return read_byte(null, f);
+		else
+			return default_val;
+	}
+
+	// char
+	public static final char read_member_char(Object obj, Field field)
+	{
+		return read_char(obj, object_field_offset(field));
+	}
+
+	public static final char read_member_char(Object obj, Field field, char default_val)
+	{
+		if (field != null && reflection.has(obj, field) && !reflection.is_static(field))
+			return read_member_char(obj, field);
+		else
+			return default_val;
+	}
+
+	public static final char read_static_char(Field field)
+	{
+		return read_char(static_field_base(field), static_field_offset(field));
+	}
+
+	public static final char read_static_char(Object obj, Field field, char default_val)
+	{
+		if (field != null && reflection.has(obj, field) && reflection.is_static(field))
+			return read_static_char(field);
+		else
+			return default_val;
+	}
+
+	public static final char read_member_char(Object obj, String field)
+	{
+		return read_char(obj, object_field_offset(obj.getClass(), field));
+	}
+
+	public static final char read_member_char(Object obj, String field, char default_val)
+	{
+		Field f = reflection.find_declared_field(obj.getClass(), field);
+		if (f != null && !reflection.is_static(f))
+			return read_member_char(obj, f);
+		else
+			return default_val;
+	}
+
+	public static final char read_static_char(Class<?> clazz, String field)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		return read_char(static_field_base(f), static_field_offset(f));
+	}
+
+	public static final char read_static_char(Class<?> clazz, String field, char default_val)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		if (f != null && reflection.is_static(f))
+			return read_static_char(f);
+		else
+			return default_val;
+	}
+
+	public static final char read_char(Object obj, Field field)
+	{
+		if (reflection.is_static(field))
+			return read_static_char(field);
+		else
+			return read_member_char(obj, field);
+	}
+
+	public static final char read_char(Object obj, Field field, char default_val)
+	{
+		if (field != null && reflection.has(obj, field))
+			return read_char(obj, field);
+		else
+			return default_val;
+	}
+
+	public static final char read_char(Object obj, String field)
+	{
+		return read_char(obj, reflection.find_declared_field(obj, field));
+	}
+
+	public static final char read_char(Object obj, String field, char default_val)
+	{
+		Field f = reflection.find_declared_field(obj.getClass(), field);
+		if (f != null)
+			return read_char(obj, f);
+		else
+			return default_val;
+	}
+
+	public static final char read_char(Class<?> clazz, String field)
+	{
+		return read_char(clazz, reflection.find_declared_field(clazz, field));
+	}
+
+	public static final char read_char(Class<?> clazz, String field, char default_val)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		if (f != null)
+			return read_char(null, f);
+		else
+			return default_val;
+	}
+
+	// short
+	public static final short read_member_short(Object obj, Field field)
+	{
+		return read_short(obj, object_field_offset(field));
+	}
+
+	public static final short read_member_short(Object obj, Field field, short default_val)
+	{
+		if (field != null && reflection.has(obj, field) && !reflection.is_static(field))
+			return read_member_short(obj, field);
+		else
+			return default_val;
+	}
+
+	public static final short read_static_short(Field field)
+	{
+		return read_short(static_field_base(field), static_field_offset(field));
+	}
+
+	public static final short read_static_short(Object obj, Field field, short default_val)
+	{
+		if (field != null && reflection.has(obj, field) && reflection.is_static(field))
+			return read_static_short(field);
+		else
+			return default_val;
+	}
+
+	public static final short read_member_short(Object obj, String field)
+	{
+		return read_short(obj, object_field_offset(obj.getClass(), field));
+	}
+
+	public static final short read_member_short(Object obj, String field, short default_val)
+	{
+		Field f = reflection.find_declared_field(obj.getClass(), field);
+		if (f != null && !reflection.is_static(f))
+			return read_member_short(obj, f);
+		else
+			return default_val;
+	}
+
+	public static final short read_static_short(Class<?> clazz, String field)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		return read_short(static_field_base(f), static_field_offset(f));
+	}
+
+	public static final short read_static_short(Class<?> clazz, String field, short default_val)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		if (f != null && reflection.is_static(f))
+			return read_static_short(f);
+		else
+			return default_val;
+	}
+
+	public static final short read_short(Object obj, Field field)
+	{
+		if (reflection.is_static(field))
+			return read_static_short(field);
+		else
+			return read_member_short(obj, field);
+	}
+
+	public static final short read_short(Object obj, Field field, short default_val)
+	{
+		if (field != null && reflection.has(obj, field))
+			return read_short(obj, field);
+		else
+			return default_val;
+	}
+
+	public static final short read_short(Object obj, String field)
+	{
+		return read_short(obj, reflection.find_declared_field(obj, field));
+	}
+
+	public static final short read_short(Object obj, String field, short default_val)
+	{
+		Field f = reflection.find_declared_field(obj.getClass(), field);
+		if (f != null)
+			return read_short(obj, f);
+		else
+			return default_val;
+	}
+
+	public static final short read_short(Class<?> clazz, String field)
+	{
+		return read_short(clazz, reflection.find_declared_field(clazz, field));
+	}
+
+	public static final short read_short(Class<?> clazz, String field, short default_val)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		if (f != null)
+			return read_short(null, f);
+		else
+			return default_val;
+	}
+
+	// int
+	public static final int read_member_int(Object obj, Field field)
+	{
+		return read_int(obj, object_field_offset(field));
+	}
+
+	public static final int read_member_int(Object obj, Field field, int default_val)
+	{
+		if (field != null && reflection.has(obj, field) && !reflection.is_static(field))
+			return read_member_int(obj, field);
+		else
+			return default_val;
+	}
+
+	public static final int read_static_int(Field field)
+	{
+		return read_int(static_field_base(field), static_field_offset(field));
+	}
+
+	public static final int read_static_int(Object obj, Field field, int default_val)
+	{
+		if (field != null && reflection.has(obj, field) && reflection.is_static(field))
+			return read_static_int(field);
+		else
+			return default_val;
 	}
 
 	public static final int read_member_int(Object obj, String field)
 	{
 		return read_int(obj, object_field_offset(obj.getClass(), field));
+	}
+
+	public static final int read_member_int(Object obj, String field, int default_val)
+	{
+		Field f = reflection.find_declared_field(obj.getClass(), field);
+		if (f != null && !reflection.is_static(f))
+			return read_member_int(obj, f);
+		else
+			return default_val;
 	}
 
 	public static final int read_static_int(Class<?> clazz, String field)
@@ -2069,57 +2294,98 @@ public final class unsafe
 		return read_int(static_field_base(f), static_field_offset(f));
 	}
 
-	// long
-	public static final void write(Object obj, Field field, long value)
-	{
-		if (Modifier.isStatic(field.getModifiers()))
-			write(static_field_base(field), static_field_offset(field), value);
-		else
-			write(obj, object_field_offset(field), value);
-	}
-
-	public static final void write(Object obj, String field, long value)
-	{
-		write(obj, reflection.find_declared_field(obj, field), value);
-	}
-
-	public static final void write(Class<?> clazz, String field, long value)
-	{
-		write(null, reflection.find_declared_field(clazz, field), value);
-	}
-
-	public static final void write_member(Object obj, String field, long value)
-	{
-		write(obj, object_field_offset(obj.getClass(), field), value);
-	}
-
-	public static final void write_static(Class<?> clazz, String field, long value)
+	public static final int read_static_int(Class<?> clazz, String field, int default_val)
 	{
 		Field f = reflection.find_declared_field(clazz, field);
-		write(static_field_base(f), static_field_offset(f), value);
-	}
-
-	public static final long read_long(Object obj, Field field)
-	{
-		if (Modifier.isStatic(field.getModifiers()))
-			return read_long(static_field_base(field), static_field_offset(field));
+		if (f != null && reflection.is_static(f))
+			return read_static_int(f);
 		else
-			return read_long(obj, object_field_offset(field));
+			return default_val;
 	}
 
-	public static final long read_long(Object obj, String field)
+	public static final int read_int(Object obj, Field field)
 	{
-		return read_long(obj, reflection.find_declared_field(obj, field));
+		if (reflection.is_static(field))
+			return read_static_int(field);
+		else
+			return read_member_int(obj, field);
 	}
 
-	public static final long read_long(Class<?> clazz, String field)
+	public static final int read_int(Object obj, Field field, int default_val)
 	{
-		return read_long(null, reflection.find_declared_field(clazz, field));
+		if (field != null && reflection.has(obj, field))
+			return read_int(obj, field);
+		else
+			return default_val;
+	}
+
+	public static final int read_int(Object obj, String field)
+	{
+		return read_int(obj, reflection.find_declared_field(obj, field));
+	}
+
+	public static final int read_int(Object obj, String field, int default_val)
+	{
+		Field f = reflection.find_declared_field(obj.getClass(), field);
+		if (f != null)
+			return read_int(obj, f);
+		else
+			return default_val;
+	}
+
+	public static final int read_int(Class<?> clazz, String field)
+	{
+		return read_int(clazz, reflection.find_declared_field(clazz, field));
+	}
+
+	public static final int read_int(Class<?> clazz, String field, int default_val)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		if (f != null)
+			return read_int(null, f);
+		else
+			return default_val;
+	}
+
+	// long
+	public static final long read_member_long(Object obj, Field field)
+	{
+		return read_long(obj, object_field_offset(field));
+	}
+
+	public static final long read_member_long(Object obj, Field field, long default_val)
+	{
+		if (field != null && reflection.has(obj, field) && !reflection.is_static(field))
+			return read_member_long(obj, field);
+		else
+			return default_val;
+	}
+
+	public static final long read_static_long(Field field)
+	{
+		return read_long(static_field_base(field), static_field_offset(field));
+	}
+
+	public static final long read_static_long(Object obj, Field field, long default_val)
+	{
+		if (field != null && reflection.has(obj, field) && reflection.is_static(field))
+			return read_static_long(field);
+		else
+			return default_val;
 	}
 
 	public static final long read_member_long(Object obj, String field)
 	{
 		return read_long(obj, object_field_offset(obj.getClass(), field));
+	}
+
+	public static final long read_member_long(Object obj, String field, long default_val)
+	{
+		Field f = reflection.find_declared_field(obj.getClass(), field);
+		if (f != null && !reflection.is_static(f))
+			return read_member_long(obj, f);
+		else
+			return default_val;
 	}
 
 	public static final long read_static_long(Class<?> clazz, String field)
@@ -2128,57 +2394,98 @@ public final class unsafe
 		return read_long(static_field_base(f), static_field_offset(f));
 	}
 
-	// float
-	public static final void write(Object obj, Field field, float value)
-	{
-		if (Modifier.isStatic(field.getModifiers()))
-			write(static_field_base(field), static_field_offset(field), value);
-		else
-			write(obj, object_field_offset(field), value);
-	}
-
-	public static final void write(Object obj, String field, float value)
-	{
-		write(obj, reflection.find_declared_field(obj, field), value);
-	}
-
-	public static final void write(Class<?> clazz, String field, float value)
-	{
-		write(null, reflection.find_declared_field(clazz, field), value);
-	}
-
-	public static final void write_member(Object obj, String field, float value)
-	{
-		write(obj, object_field_offset(obj.getClass(), field), value);
-	}
-
-	public static final void write_static(Class<?> clazz, String field, float value)
+	public static final long read_static_long(Class<?> clazz, String field, long default_val)
 	{
 		Field f = reflection.find_declared_field(clazz, field);
-		write(static_field_base(f), static_field_offset(f), value);
-	}
-
-	public static final float read_float(Object obj, Field field)
-	{
-		if (Modifier.isStatic(field.getModifiers()))
-			return read_float(static_field_base(field), static_field_offset(field));
+		if (f != null && reflection.is_static(f))
+			return read_static_long(f);
 		else
-			return read_float(obj, object_field_offset(field));
+			return default_val;
 	}
 
-	public static final float read_float(Object obj, String field)
+	public static final long read_long(Object obj, Field field)
 	{
-		return read_float(obj, reflection.find_declared_field(obj, field));
+		if (reflection.is_static(field))
+			return read_static_long(field);
+		else
+			return read_member_long(obj, field);
 	}
 
-	public static final float read_float(Class<?> clazz, String field)
+	public static final long read_long(Object obj, Field field, long default_val)
 	{
-		return read_float(null, reflection.find_declared_field(clazz, field));
+		if (field != null && reflection.has(obj, field))
+			return read_long(obj, field);
+		else
+			return default_val;
+	}
+
+	public static final long read_long(Object obj, String field)
+	{
+		return read_long(obj, reflection.find_declared_field(obj, field));
+	}
+
+	public static final long read_long(Object obj, String field, long default_val)
+	{
+		Field f = reflection.find_declared_field(obj.getClass(), field);
+		if (f != null)
+			return read_long(obj, f);
+		else
+			return default_val;
+	}
+
+	public static final long read_long(Class<?> clazz, String field)
+	{
+		return read_long(clazz, reflection.find_declared_field(clazz, field));
+	}
+
+	public static final long read_long(Class<?> clazz, String field, long default_val)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		if (f != null)
+			return read_long(null, f);
+		else
+			return default_val;
+	}
+
+	// float
+	public static final float read_member_float(Object obj, Field field)
+	{
+		return read_float(obj, object_field_offset(field));
+	}
+
+	public static final float read_member_float(Object obj, Field field, float default_val)
+	{
+		if (field != null && reflection.has(obj, field) && !reflection.is_static(field))
+			return read_member_float(obj, field);
+		else
+			return default_val;
+	}
+
+	public static final float read_static_float(Field field)
+	{
+		return read_float(static_field_base(field), static_field_offset(field));
+	}
+
+	public static final float read_static_float(Object obj, Field field, float default_val)
+	{
+		if (field != null && reflection.has(obj, field) && reflection.is_static(field))
+			return read_static_float(field);
+		else
+			return default_val;
 	}
 
 	public static final float read_member_float(Object obj, String field)
 	{
 		return read_float(obj, object_field_offset(obj.getClass(), field));
+	}
+
+	public static final float read_member_float(Object obj, String field, float default_val)
+	{
+		Field f = reflection.find_declared_field(obj.getClass(), field);
+		if (f != null && !reflection.is_static(f))
+			return read_member_float(obj, f);
+		else
+			return default_val;
 	}
 
 	public static final float read_static_float(Class<?> clazz, String field)
@@ -2187,52 +2494,84 @@ public final class unsafe
 		return read_float(static_field_base(f), static_field_offset(f));
 	}
 
-	// double
-	public static final void write(Object obj, Field field, double value)
-	{
-		if (Modifier.isStatic(field.getModifiers()))
-			write(static_field_base(field), static_field_offset(field), value);
-		else
-			write(obj, object_field_offset(field), value);
-	}
-
-	public static final void write(Object obj, String field, double value)
-	{
-		write(obj, reflection.find_declared_field(obj, field), value);
-	}
-
-	public static final void write(Class<?> clazz, String field, double value)
-	{
-		write(null, reflection.find_declared_field(clazz, field), value);
-	}
-
-	public static final void write_member(Object obj, String field, double value)
-	{
-		write(obj, object_field_offset(obj.getClass(), field), value);
-	}
-
-	public static final void write_static(Class<?> clazz, String field, double value)
+	public static final float read_static_float(Class<?> clazz, String field, float default_val)
 	{
 		Field f = reflection.find_declared_field(clazz, field);
-		write(static_field_base(f), static_field_offset(f), value);
-	}
-
-	public static final double read_double(Object obj, Field field)
-	{
-		if (Modifier.isStatic(field.getModifiers()))
-			return read_double(static_field_base(field), static_field_offset(field));
+		if (f != null && reflection.is_static(f))
+			return read_static_float(f);
 		else
-			return read_double(obj, object_field_offset(field));
+			return default_val;
 	}
 
-	public static final double read_double(Object obj, String field)
+	public static final float read_float(Object obj, Field field)
 	{
-		return read_double(obj, reflection.find_declared_field(obj, field));
+		if (reflection.is_static(field))
+			return read_static_float(field);
+		else
+			return read_member_float(obj, field);
 	}
 
-	public static final double read_double(Class<?> clazz, String field)
+	public static final float read_float(Object obj, Field field, float default_val)
 	{
-		return read_double(null, reflection.find_declared_field(clazz, field));
+		if (field != null && reflection.has(obj, field))
+			return read_float(obj, field);
+		else
+			return default_val;
+	}
+
+	public static final float read_float(Object obj, String field)
+	{
+		return read_float(obj, reflection.find_declared_field(obj, field));
+	}
+
+	public static final float read_float(Object obj, String field, float default_val)
+	{
+		Field f = reflection.find_declared_field(obj.getClass(), field);
+		if (f != null)
+			return read_float(obj, f);
+		else
+			return default_val;
+	}
+
+	public static final float read_float(Class<?> clazz, String field)
+	{
+		return read_float(clazz, reflection.find_declared_field(clazz, field));
+	}
+
+	public static final float read_float(Class<?> clazz, String field, float default_val)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		if (f != null)
+			return read_float(null, f);
+		else
+			return default_val;
+	}
+
+	// double
+	public static final double read_member_double(Object obj, Field field)
+	{
+		return read_double(obj, object_field_offset(field));
+	}
+
+	public static final double read_member_double(Object obj, Field field, double default_val)
+	{
+		if (field != null && reflection.has(obj, field) && !reflection.is_static(field))
+			return read_member_double(obj, field);
+		else
+			return default_val;
+	}
+
+	public static final double read_static_double(Field field)
+	{
+		return read_double(static_field_base(field), static_field_offset(field));
+	}
+
+	public static final double read_static_double(Object obj, Field field, double default_val)
+	{
+		if (field != null && reflection.has(obj, field) && reflection.is_static(field))
+			return read_static_double(field);
+		else
+			return default_val;
 	}
 
 	public static final double read_member_double(Object obj, String field)
@@ -2240,10 +2579,72 @@ public final class unsafe
 		return read_double(obj, object_field_offset(obj.getClass(), field));
 	}
 
+	public static final double read_member_double(Object obj, String field, double default_val)
+	{
+		Field f = reflection.find_declared_field(obj.getClass(), field);
+		if (f != null && !reflection.is_static(f))
+			return read_member_double(obj, f);
+		else
+			return default_val;
+	}
+
 	public static final double read_static_double(Class<?> clazz, String field)
 	{
 		Field f = reflection.find_declared_field(clazz, field);
 		return read_double(static_field_base(f), static_field_offset(f));
+	}
+
+	public static final double read_static_double(Class<?> clazz, String field, double default_val)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		if (f != null && reflection.is_static(f))
+			return read_static_double(f);
+		else
+			return default_val;
+	}
+
+	public static final double read_double(Object obj, Field field)
+	{
+		if (reflection.is_static(field))
+			return read_static_double(field);
+		else
+			return read_member_double(obj, field);
+	}
+
+	public static final double read_double(Object obj, Field field, double default_val)
+	{
+		if (field != null && reflection.has(obj, field))
+			return read_double(obj, field);
+		else
+			return default_val;
+	}
+
+	public static final double read_double(Object obj, String field)
+	{
+		return read_double(obj, reflection.find_declared_field(obj, field));
+	}
+
+	public static final double read_double(Object obj, String field, double default_val)
+	{
+		Field f = reflection.find_declared_field(obj.getClass(), field);
+		if (f != null)
+			return read_double(obj, f);
+		else
+			return default_val;
+	}
+
+	public static final double read_double(Class<?> clazz, String field)
+	{
+		return read_double(clazz, reflection.find_declared_field(clazz, field));
+	}
+
+	public static final double read_double(Class<?> clazz, String field, double default_val)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		if (f != null)
+			return read_double(null, f);
+		else
+			return default_val;
 	}
 
 	/**
