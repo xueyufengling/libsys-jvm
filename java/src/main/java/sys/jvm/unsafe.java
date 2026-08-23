@@ -1708,6 +1708,30 @@ public final class unsafe
 		return read_double(byte_arr, array_byte_base_offset + arr_idx);
 	}
 
+	// 写
+
+	// Object
+	public static final void write_member(Object obj, String field, Object value)
+	{
+		write(obj, object_field_offset(obj.getClass(), field), value);
+	}
+
+	public static final void write_member(Object obj, Field field, Object value)
+	{
+		write(obj, object_field_offset(field), value);
+	}
+
+	public static final void write_static(Class<?> clazz, String field, Object value)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		write(static_field_base(f), static_field_offset(f), value);
+	}
+
+	public static final void write_static(Field field, Object value)
+	{
+		write(static_field_base(field), static_field_offset(field), value);
+	}
+
 	/**
 	 * 无视访问权限和修饰符修改Object值，如果是静态成员忽略obj参数.此方法对于HiddenClass和record同样有效
 	 * 
@@ -1719,9 +1743,9 @@ public final class unsafe
 	public static final void write(Object obj, Field field, Object value)
 	{
 		if (reflection.is_static(field))
-			write(static_field_base(field), static_field_offset(field), value);
+			write_static(field, value);
 		else
-			write(obj, object_field_offset(field), value);
+			write_member(obj, field, value);
 	}
 
 	public static final void write(Object obj, String field, Object value)
@@ -1734,15 +1758,324 @@ public final class unsafe
 		write(null, reflection.find_declared_field(clazz, field), value);
 	}
 
-	public static final void write_member(Object obj, String field, Object value)
+	// boolean
+	public static final void write_member(Object obj, String field, boolean value)
 	{
 		write(obj, object_field_offset(obj.getClass(), field), value);
 	}
 
-	public static final void write_static(Class<?> clazz, String field, Object value)
+	public static final void write_member(Object obj, Field field, boolean value)
+	{
+		write(obj, object_field_offset(field), value);
+	}
+
+	public static final void write_static(Class<?> clazz, String field, boolean value)
 	{
 		Field f = reflection.find_declared_field(clazz, field);
 		write(static_field_base(f), static_field_offset(f), value);
+	}
+
+	public static final void write_static(Field field, boolean value)
+	{
+		write(static_field_base(field), static_field_offset(field), value);
+	}
+
+	public static final void write(Object obj, Field field, boolean value)
+	{
+		if (reflection.is_static(field))
+			write_static(field, value);
+		else
+			write_member(obj, field, value);
+	}
+
+	public static final void write(Object obj, String field, boolean value)
+	{
+		write(obj, reflection.find_declared_field(obj, field), value);
+	}
+
+	public static final void write(Class<?> clazz, String field, boolean value)
+	{
+		write(null, reflection.find_declared_field(clazz, field), value);
+	}
+
+	// byte
+	public static final void write_member(Object obj, String field, byte value)
+	{
+		write(obj, object_field_offset(obj.getClass(), field), value);
+	}
+
+	public static final void write_member(Object obj, Field field, byte value)
+	{
+		write(obj, object_field_offset(field), value);
+	}
+
+	public static final void write_static(Class<?> clazz, String field, byte value)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		write(static_field_base(f), static_field_offset(f), value);
+	}
+
+	public static final void write_static(Field field, byte value)
+	{
+		write(static_field_base(field), static_field_offset(field), value);
+	}
+
+	public static final void write(Object obj, Field field, byte value)
+	{
+		if (reflection.is_static(field))
+			write_static(field, value);
+		else
+			write_member(obj, field, value);
+	}
+
+	public static final void write(Object obj, String field, byte value)
+	{
+		write(obj, reflection.find_declared_field(obj, field), value);
+	}
+
+	public static final void write(Class<?> clazz, String field, byte value)
+	{
+		write(null, reflection.find_declared_field(clazz, field), value);
+	}
+
+	// char
+	public static final void write_member(Object obj, String field, char value)
+	{
+		write(obj, object_field_offset(obj.getClass(), field), value);
+	}
+
+	public static final void write_member(Object obj, Field field, char value)
+	{
+		write(obj, object_field_offset(field), value);
+	}
+
+	public static final void write_static(Class<?> clazz, String field, char value)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		write(static_field_base(f), static_field_offset(f), value);
+	}
+
+	public static final void write_static(Field field, char value)
+	{
+		write(static_field_base(field), static_field_offset(field), value);
+	}
+
+	public static final void write(Object obj, Field field, char value)
+	{
+		if (reflection.is_static(field))
+			write_static(field, value);
+		else
+			write_member(obj, field, value);
+	}
+
+	public static final void write(Object obj, String field, char value)
+	{
+		write(obj, reflection.find_declared_field(obj, field), value);
+	}
+
+	public static final void write(Class<?> clazz, String field, char value)
+	{
+		write(null, reflection.find_declared_field(clazz, field), value);
+	}
+
+	// short
+	public static final void write_member(Object obj, String field, short value)
+	{
+		write(obj, object_field_offset(obj.getClass(), field), value);
+	}
+
+	public static final void write_member(Object obj, Field field, short value)
+	{
+		write(obj, object_field_offset(field), value);
+	}
+
+	public static final void write_static(Class<?> clazz, String field, short value)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		write(static_field_base(f), static_field_offset(f), value);
+	}
+
+	public static final void write_static(Field field, short value)
+	{
+		write(static_field_base(field), static_field_offset(field), value);
+	}
+
+	public static final void write(Object obj, Field field, short value)
+	{
+		if (reflection.is_static(field))
+			write_static(field, value);
+		else
+			write_member(obj, field, value);
+	}
+
+	public static final void write(Object obj, String field, short value)
+	{
+		write(obj, reflection.find_declared_field(obj, field), value);
+	}
+
+	public static final void write(Class<?> clazz, String field, short value)
+	{
+		write(null, reflection.find_declared_field(clazz, field), value);
+	}
+
+	// int
+	public static final void write_member(Object obj, String field, int value)
+	{
+		write(obj, object_field_offset(obj.getClass(), field), value);
+	}
+
+	public static final void write_member(Object obj, Field field, int value)
+	{
+		write(obj, object_field_offset(field), value);
+	}
+
+	public static final void write_static(Class<?> clazz, String field, int value)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		write(static_field_base(f), static_field_offset(f), value);
+	}
+
+	public static final void write_static(Field field, int value)
+	{
+		write(static_field_base(field), static_field_offset(field), value);
+	}
+
+	public static final void write(Object obj, Field field, int value)
+	{
+		if (reflection.is_static(field))
+			write_static(field, value);
+		else
+			write_member(obj, field, value);
+	}
+
+	public static final void write(Object obj, String field, int value)
+	{
+		write(obj, reflection.find_declared_field(obj, field), value);
+	}
+
+	public static final void write(Class<?> clazz, String field, int value)
+	{
+		write(null, reflection.find_declared_field(clazz, field), value);
+	}
+
+	// long
+	public static final void write_member(Object obj, String field, long value)
+	{
+		write(obj, object_field_offset(obj.getClass(), field), value);
+	}
+
+	public static final void write_member(Object obj, Field field, long value)
+	{
+		write(obj, object_field_offset(field), value);
+	}
+
+	public static final void write_static(Class<?> clazz, String field, long value)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		write(static_field_base(f), static_field_offset(f), value);
+	}
+
+	public static final void write_static(Field field, long value)
+	{
+		write(static_field_base(field), static_field_offset(field), value);
+	}
+
+	public static final void write(Object obj, Field field, long value)
+	{
+		if (reflection.is_static(field))
+			write_static(field, value);
+		else
+			write_member(obj, field, value);
+	}
+
+	public static final void write(Object obj, String field, long value)
+	{
+		write(obj, reflection.find_declared_field(obj, field), value);
+	}
+
+	public static final void write(Class<?> clazz, String field, long value)
+	{
+		write(null, reflection.find_declared_field(clazz, field), value);
+	}
+
+	// float
+	public static final void write_member(Object obj, String field, float value)
+	{
+		write(obj, object_field_offset(obj.getClass(), field), value);
+	}
+
+	public static final void write_member(Object obj, Field field, float value)
+	{
+		write(obj, object_field_offset(field), value);
+	}
+
+	public static final void write_static(Class<?> clazz, String field, float value)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		write(static_field_base(f), static_field_offset(f), value);
+	}
+
+	public static final void write_static(Field field, float value)
+	{
+		write(static_field_base(field), static_field_offset(field), value);
+	}
+
+	public static final void write(Object obj, Field field, float value)
+	{
+		if (reflection.is_static(field))
+			write_static(field, value);
+		else
+			write_member(obj, field, value);
+	}
+
+	public static final void write(Object obj, String field, float value)
+	{
+		write(obj, reflection.find_declared_field(obj, field), value);
+	}
+
+	public static final void write(Class<?> clazz, String field, float value)
+	{
+		write(null, reflection.find_declared_field(clazz, field), value);
+	}
+
+	// double
+	public static final void write_member(Object obj, String field, double value)
+	{
+		write(obj, object_field_offset(obj.getClass(), field), value);
+	}
+
+	public static final void write_member(Object obj, Field field, double value)
+	{
+		write(obj, object_field_offset(field), value);
+	}
+
+	public static final void write_static(Class<?> clazz, String field, double value)
+	{
+		Field f = reflection.find_declared_field(clazz, field);
+		write(static_field_base(f), static_field_offset(f), value);
+	}
+
+	public static final void write_static(Field field, double value)
+	{
+		write(static_field_base(field), static_field_offset(field), value);
+	}
+
+	public static final void write(Object obj, Field field, double value)
+	{
+		if (reflection.is_static(field))
+			write_static(field, value);
+		else
+			write_member(obj, field, value);
+	}
+
+	public static final void write(Object obj, String field, double value)
+	{
+		write(obj, reflection.find_declared_field(obj, field), value);
+	}
+
+	public static final void write(Class<?> clazz, String field, double value)
+	{
+		write(null, reflection.find_declared_field(clazz, field), value);
 	}
 
 	// 读
