@@ -1,6 +1,10 @@
 package sys.jvm;
 
 import java.lang.annotation.Annotation;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.AccessibleObject;
@@ -17,14 +21,16 @@ import java.lang.reflect.Type;
 import java.lang.reflect.WildcardType;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
 import sun.reflect.ReflectionFactory;
-import sys.jvm.hotspot.oops.InstanceKlass;
+
 import sys.jvm.type.java_type;
+import sys.jvm.hotspot.oops.InstanceKlass;
 
 /**
  * 反射工具，大部分功能可以直接使用Manipulator调用
@@ -84,13 +90,6 @@ public abstract class reflection
 			}
 			return null;
 		}
-	}
-
-	public static final StackWalker stack_walker;
-
-	static
-	{
-		stack_walker = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);// 最常用，最先初始化
 	}
 
 	private static Class<?> jdk_internal_reflect_Reflection = null;
@@ -508,18 +507,20 @@ public abstract class reflection
 		}
 	}
 
+	@skip_unwind
 	public static final Class<?> find_class(String name, boolean initialize, ClassLoader loader)
 	{
-		Class<?> caller = get_caller_class();
-		return find_class(name, initialize, loader, caller);
+		return find_class(name, initialize, loader, get_caller_class());
 	}
 
+	@skip_unwind
 	public static final Class<?> find_class(String name, boolean initialize)
 	{
 		Class<?> caller = get_caller_class();
 		return find_class(name, initialize, caller.getClassLoader(), caller);
 	}
 
+	@skip_unwind
 	public static final Class<?> find_class(String name)
 	{
 		Class<?> caller = get_caller_class();
@@ -1085,16 +1086,16 @@ public abstract class reflection
 		return class_names_in_classpath(file_system.classpath(any_class_in_package, classpath_resolver), any_class_in_package, package_name, include_subpackage);
 	}
 
+	@skip_unwind
 	public static final List<String> class_names_in_package(String package_name, boolean include_subpackage)
 	{
-		Class<?> caller = get_caller_class();
-		return class_names_in_package(caller, package_name, include_subpackage);// 获取调用该方法的类
+		return class_names_in_package(get_caller_class(), package_name, include_subpackage);// 获取调用该方法的类
 	}
 
+	@skip_unwind
 	public static final List<String> class_names_in_package(Function<String, String> classpath_resolver, String package_name, boolean include_subpackage)
 	{
-		Class<?> caller = get_caller_class();
-		return class_names_in_package(caller, classpath_resolver, package_name, include_subpackage);
+		return class_names_in_package(get_caller_class(), classpath_resolver, package_name, include_subpackage);
 	}
 
 	/**
@@ -1564,103 +1565,107 @@ public abstract class reflection
 		public void operate(StackWalker.StackFrame stack_frame);
 	}
 
-	/**
-	 * 栈回溯设置
-	 */
-	public enum unwind_option
+	private static final StackWalker stack_walker;
+
+	static
 	{
-		SKIP_COUNT_BY_FRAME, SKIP_COUNT_BY_CLASS
+		stack_walker = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);// 最常用，最先初始化
+	}
+
+	/**
+	 * 栈回溯跳过此函数的注解
+	 */
+	@Retention(RetentionPolicy.RUNTIME)
+	@Target(
+	{ ElementType.METHOD, ElementType.CONSTRUCTOR })
+	public @interface skip_unwind
+	{
 	}
 
 	/**
 	 * 栈回溯<br>
-	 * 本方法对应的栈帧始终是0，<br>
-	 * skip 1 会返回直接调用本方法unwind(int skip_frame_count)的栈帧，即调用者方法本身栈帧<br>
-	 * skip 2 会返回调用该调用者的方法栈帧
+	 * 会跳过带有@skip_unwind注解的方法。<br>
 	 * 
-	 * @param skip_frame_count
-	 * @return
+	 * @param skip_frame_count 跳过的栈帧数量
+	 * @return 得到的结果栈帧
+	 * @since Java 9
 	 */
+	@skip_unwind
 	public static final StackWalker.StackFrame unwind(int skip_frame_count)
 	{
-		return stack_walker.walk(stack -> stack.skip(skip_frame_count).findFirst().get());
+		return stack_walker.walk(stack ->
+		{
+			int skipped_frame_count = 0;
+			// 跳过带有@skip_unwind注解的方法
+			Iterator<StackWalker.StackFrame> iterator = stack.skip(1).iterator();// 跳过当前方法
+			while (iterator.hasNext())
+			{
+				StackWalker.StackFrame frame = iterator.next();
+				if (is_unwind_skippable(frame))
+				{
+					continue;
+				}
+				if (skipped_frame_count == skip_frame_count)
+				{
+					return frame;
+				}
+				++skipped_frame_count;
+			}
+			return null;
+		});
 	}
 
+	/**
+	 * 判断是否有@skip_unwind注解
+	 * 
+	 * @param frame
+	 * @return
+	 */
+	public static final boolean is_unwind_skippable(StackWalker.StackFrame frame)
+	{
+		try
+		{
+			return frame.getDeclaringClass()
+					.getDeclaredMethod(frame.getMethodName(), frame.getMethodType().parameterArray())
+					.isAnnotationPresent(skip_unwind.class);
+		}
+		catch (Exception ex)
+		{
+			return false;
+		}
+	}
+
+	public static final boolean is_unwind_skippable(Method m)
+	{
+		return m.isAnnotationPresent(skip_unwind.class);
+	}
+
+	public static final boolean is_unwind_skippable(Constructor<?> c)
+	{
+		return c.isAnnotationPresent(skip_unwind.class);
+	}
+
+	@skip_unwind
 	public static final void unwind(int skip_frame_count, unwind_operation op)
 	{
-		op.operate(stack_walker.walk(stack -> stack.skip(skip_frame_count).findFirst().get()));
+		op.operate(unwind(skip_frame_count));
 	}
 
+	@skip_unwind
 	public static final Class<?> unwind_class(int skip_frame_count)
 	{
-		return stack_walker.walk(stack -> stack.skip(skip_frame_count).findFirst().get().getDeclaringClass());
+		return unwind(skip_frame_count).getDeclaringClass();
 	}
 
 	/**
-	 * 获取调用直接调用此函数的函数所属类
+	 * 获取直接调用此函数的函数所属类
 	 * 
 	 * @return
 	 */
+	@skip_unwind
 	public static final Class<?> get_caller_class()
 	{
-		return unwind_class(3);
-	}
-
-	/**
-	 * 追踪函数调用栈帧，并获取调用的类<br>
-	 * StackTrackOption为SKIP_COUNT_BY_FRAME时，行为同unwind_class(int skip_frame_count)一致<br>
-	 * StackTrackOption为SKIP_COUNT_BY_CLASS时，追踪函数调用栈帧，并且返回第skip_class_count个不同的类<br>
-	 * skip_class_count只表明跳过几个不同的类，对于连续同一个类调用栈帧将直接全部跳过
-	 * 
-	 * @param skip_count
-	 * @param option
-	 * @return
-	 * @since Java 9
-	 */
-	public static final Class<?> unwind_class(int skip_count, unwind_option option)
-	{
-		switch (option)
-		{
-		case SKIP_COUNT_BY_FRAME:
-			return unwind_class(skip_count);
-		case SKIP_COUNT_BY_CLASS:
-		{
-			int skipped_class_count = 0;
-			int skip_frame = 1;// 以JavaLang作为起点
-			Class<?> caller_record = unwind_class(skip_frame);
-			Class<?> stack_frame_class = null;
-			if (skip_count > 0)
-			{
-				for (;;)
-				{
-					stack_frame_class = unwind_class(++skip_frame);
-					if (caller_record == stack_frame_class)
-						continue;
-					else
-					{
-						caller_record = stack_frame_class;// 将下一个与当前caller_record不同的类记录作为追踪结果
-						if (++skipped_class_count >= skip_count)
-							break;
-					}
-				}
-			}
-			return caller_record;
-		}
-		}
-		return null;
-	}
-
-	/**
-	 * 获取直接调用该方法的类<br>
-	 * 例如A()调用B()，B()调用context_class()，那么返回B()栈帧
-	 * 
-	 * @return
-	 * @since Java 9
-	 * @CallerSensitive
-	 */
-	public static final Class<?> context_class()
-	{
-		return unwind_class(2);
+		return unwind_class(0);
 	}
 
 	public class class_operation

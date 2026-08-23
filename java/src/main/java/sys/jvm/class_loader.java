@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.function.Function;
 
+import sys.jvm.reflection.skip_unwind;
 import sys.jvm.structs.instant_iterate_list;
 
 public class class_loader
@@ -292,10 +293,10 @@ public class class_loader
 		};
 	}
 
+	@skip_unwind
 	public static final ClassLoader new_class_loader(HashMap<String, byte[]> undefined_class)
 	{
-		Class<?> caller = reflection.get_caller_class();
-		return new_class_loader(caller.getClassLoader(), undefined_class);
+		return new_class_loader(reflection.get_caller_class().getClassLoader(), undefined_class);
 	}
 
 	/**
@@ -468,9 +469,10 @@ public class class_loader
 		}
 	}
 
+	@skip_unwind
 	public static final ClassLoader caller_class_loader()
 	{
-		return reflection.unwind_class(4).getClassLoader();
+		return reflection.get_caller_class().getClassLoader();
 	}
 
 	/**
@@ -480,18 +482,19 @@ public class class_loader
 	 * @param init
 	 * @param class_names
 	 */
+	@skip_unwind
 	public static final void load(ClassLoader loader, boolean init, String... class_names)
 	{
-		for (String clazz : class_names)
+		for (String class_name : class_names)
 		{
-			reflection.find_class(clazz, init, loader);
+			reflection.find_class(class_name, init, loader);
 		}
 	}
 
+	@skip_unwind
 	public static final void load(boolean init, String... class_names)
 	{
-		ClassLoader loader = caller_class_loader();
-		load(loader, init, class_names);
+		load(caller_class_loader(), init, class_names);
 	}
 
 	/**
@@ -499,12 +502,13 @@ public class class_loader
 	 * 
 	 * @param class_names
 	 */
+	@skip_unwind
 	public static final void load(String... class_names)
 	{
-		ClassLoader loader = caller_class_loader();
-		load(loader, true, class_names);
+		load(caller_class_loader(), true, class_names);
 	}
 
+	@skip_unwind
 	private static final void load(Class<?> any_class_in_package, boolean init, List<String> class_names)
 	{
 		ClassLoader loader = any_class_in_package.getClassLoader();
@@ -514,26 +518,28 @@ public class class_loader
 		}
 	}
 
+	@skip_unwind
 	public static final void load(Class<?> any_class_in_package, boolean init, String start_path, boolean include_subpackage)
 	{
 		load(any_class_in_package, init, reflection.class_names_in_package(any_class_in_package, start_path, include_subpackage));
 	}
 
+	@skip_unwind
 	public static final void load(boolean init, String start_path, boolean include_subpackage)
 	{
-		Class<?> caller = reflection.get_caller_class();
-		load(caller, init, start_path, include_subpackage);
+		load(reflection.get_caller_class(), init, start_path, include_subpackage);
 	}
 
+	@skip_unwind
 	public static final void load(Class<?> any_class_in_package, Function<String, String> classpath_resolver, boolean init, String start_path, boolean include_subpackage)
 	{
 		load(any_class_in_package, init, reflection.class_names_in_package(any_class_in_package, classpath_resolver, start_path, include_subpackage));
 	}
 
+	@skip_unwind
 	public static final void load(Function<String, String> classpath_resolver, boolean init, String start_path, boolean include_subpackage)
 	{
-		Class<?> caller = reflection.get_caller_class();
-		load(caller, classpath_resolver, init, start_path, include_subpackage);
+		load(reflection.get_caller_class(), classpath_resolver, init, start_path, include_subpackage);
 	}
 
 	/**
@@ -576,10 +582,10 @@ public class class_loader
 		return package_names;
 	}
 
+	@skip_unwind
 	public static final String[] loaded_packages()
 	{
-		Class<?> caller = reflection.get_caller_class();
-		return loaded_packages(caller.getClassLoader());
+		return loaded_packages(reflection.get_caller_class().getClassLoader());
 	}
 
 	/**
@@ -625,18 +631,19 @@ public class class_loader
 	 * 
 	 * @param jar
 	 */
+	@skip_unwind
 	public static final ClassLoader load_jar(InputStream... jars)
 	{
-		Class<?> caller = reflection.get_caller_class();
-		return load_jar(caller.getClassLoader(), jars);
+		return load_jar(reflection.get_caller_class().getClassLoader(), jars);
 	}
 
+	@skip_unwind
 	public static final ClassLoader load_jar(byte[]... multi_jar_bytes)
 	{
-		Class<?> caller = reflection.get_caller_class();
-		return load_jar(caller.getClassLoader(), file_system.jar_streams(multi_jar_bytes));
+		return load_jar(reflection.get_caller_class().getClassLoader(), file_system.jar_streams(multi_jar_bytes));
 	}
 
+	@skip_unwind
 	public static final ClassLoader load_jar(String... jar_paths)
 	{
 		Class<?> caller = reflection.get_caller_class();
@@ -650,18 +657,19 @@ public class class_loader
 	 * @param package_name
 	 * @param include_subpackage
 	 */
+	@skip_unwind
 	public static final ClassLoader load_jar(String package_name, boolean include_subpackage, InputStream... jars)
 	{
-		Class<?> caller = reflection.get_caller_class();
-		return load_jar(caller.getClassLoader(), package_name, include_subpackage, jars);
+		return load_jar(reflection.get_caller_class().getClassLoader(), package_name, include_subpackage, jars);
 	}
 
+	@skip_unwind
 	public static final ClassLoader load_jar(String package_name, boolean include_subpackage, byte[]... multi_jar_bytes)
 	{
-		Class<?> caller = reflection.get_caller_class();
-		return load_jar(caller.getClassLoader(), package_name, include_subpackage, file_system.jar_streams(multi_jar_bytes));
+		return load_jar(reflection.get_caller_class().getClassLoader(), package_name, include_subpackage, file_system.jar_streams(multi_jar_bytes));
 	}
 
+	@skip_unwind
 	public static final ClassLoader load_jar(String package_name, boolean include_subpackage, String... entry_jar_paths)
 	{
 		Class<?> caller = reflection.get_caller_class();
