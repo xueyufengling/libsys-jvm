@@ -1,10 +1,6 @@
 package sys.jvm;
 
 import java.lang.annotation.Annotation;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.AccessibleObject;
@@ -21,14 +17,13 @@ import java.lang.reflect.Type;
 import java.lang.reflect.WildcardType;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
 import sun.reflect.ReflectionFactory;
-
+import sys.jvm.stack.skip_unwind;
 import sys.jvm.type.java_type;
 import sys.jvm.hotspot.oops.InstanceKlass;
 
@@ -465,15 +460,15 @@ public abstract class reflection
 	 * 
 	 * @param <_T>
 	 * @param clazz
-	 * @param which    java.lang.reflect.Member接口中的访问类型，Member.DECLARED为全部定义的构造函数，Member.PUBLIC为public的构造函数
-	 * @param argTypes 构造函数的参数类型
+	 * @param which     java.lang.reflect.Member接口中的访问类型，Member.DECLARED为全部定义的构造函数，Member.PUBLIC为public的构造函数
+	 * @param arg_types 构造函数的参数类型
 	 * @return
 	 */
-	public static final <_T> Constructor<_T> __find_declared_constructor(Class<_T> clazz, int which, Class<?>... argTypes)
+	public static final <_T> Constructor<_T> __find_declared_constructor(Class<_T> clazz, int which, Class<?>... arg_types)
 	{
 		try
 		{
-			return (Constructor<_T>) Class_getConstructor0.invokeExact(clazz, argTypes, which);
+			return (Constructor<_T>) Class_getConstructor0.invokeExact(clazz, arg_types, which);
 		}
 		catch (Throwable ex)
 		{
@@ -481,9 +476,9 @@ public abstract class reflection
 		}
 	}
 
-	public static final <_T> Constructor<_T> __find_declared_constructor(Class<_T> clazz, Class<?>... argTypes)
+	public static final <_T> Constructor<_T> __find_declared_constructor(Class<_T> clazz, Class<?>... arg_types)
 	{
-		return __find_declared_constructor(clazz, Member.DECLARED, argTypes);
+		return __find_declared_constructor(clazz, Member.DECLARED, arg_types);
 	}
 
 	/**
@@ -510,20 +505,20 @@ public abstract class reflection
 	@skip_unwind
 	public static final Class<?> find_class(String name, boolean initialize, ClassLoader loader)
 	{
-		return find_class(name, initialize, loader, get_caller_class());
+		return find_class(name, initialize, loader, stack.get_caller_class());
 	}
 
 	@skip_unwind
 	public static final Class<?> find_class(String name, boolean initialize)
 	{
-		Class<?> caller = get_caller_class();
+		Class<?> caller = stack.get_caller_class();
 		return find_class(name, initialize, caller.getClassLoader(), caller);
 	}
 
 	@skip_unwind
 	public static final Class<?> find_class(String name)
 	{
-		Class<?> caller = get_caller_class();
+		Class<?> caller = stack.get_caller_class();
 		return find_class(name, true, caller.getClassLoader(), caller);
 	}
 
@@ -902,20 +897,40 @@ public abstract class reflection
 		}
 	}
 
-	public static final Constructor<?> find_constructor(Object obj, Class<?>... arg_types)
+	/**
+	 * @brief 查找本类声明的构造函数
+	 * @param <_T>
+	 * @param clazz
+	 * @param arg_types
+	 * @return
+	 */
+	public static final <_T> Constructor<_T> find_declared_constructor(Class<_T> clazz, Class<?>... arg_types)
 	{
-		Class<?> clazz;
-		if (obj instanceof Class<?> c)
-			clazz = c;
-		else
-			clazz = obj.getClass();
-		Constructor<?> result = __find_declared_constructor(clazz, arg_types == null ? (new Class<?>[] {}) : arg_types);
+		return __find_declared_constructor(clazz, arg_types == null ? (new Class<?>[] {}) : arg_types);
+	}
+
+	/**
+	 * @brief 按照继承链递归查找构造函数
+	 * @param <_T>
+	 * @param clazz
+	 * @param arg_types
+	 * @return
+	 */
+	public static final <_T> Constructor<? super _T> find_constructor(Class<_T> clazz, Class<?>... arg_types)
+	{
+		Constructor<? super _T> result = find_declared_constructor(clazz, arg_types);
 		if (result == null)
 		{
-			Class<?> super_clazz = clazz.getSuperclass();
+			Class<? super _T> super_clazz = clazz.getSuperclass();
 			return super_clazz == null ? null : find_constructor(super_clazz, arg_types);
 		}
 		return result;
+	}
+
+	@SuppressWarnings("unchecked")
+	public static final <_T> Constructor<? super _T> find_constructor(_T obj, Class<?>... arg_types)
+	{
+		return (Constructor<? super _T>) find_constructor(obj.getClass(), arg_types);
 	}
 
 	/**
@@ -1089,13 +1104,13 @@ public abstract class reflection
 	@skip_unwind
 	public static final List<String> class_names_in_package(String package_name, boolean include_subpackage)
 	{
-		return class_names_in_package(get_caller_class(), package_name, include_subpackage);// 获取调用该方法的类
+		return class_names_in_package(stack.get_caller_class(), package_name, include_subpackage);// 获取调用该方法的类
 	}
 
 	@skip_unwind
 	public static final List<String> class_names_in_package(Function<String, String> classpath_resolver, String package_name, boolean include_subpackage)
 	{
-		return class_names_in_package(get_caller_class(), classpath_resolver, package_name, include_subpackage);
+		return class_names_in_package(stack.get_caller_class(), classpath_resolver, package_name, include_subpackage);
 	}
 
 	/**
@@ -1552,122 +1567,6 @@ public abstract class reflection
 		return generic_classes(t)[0].type();
 	}
 
-	/**
-	 * 栈帧回溯
-	 */
-
-	/**
-	 * 栈追踪时执行的操作
-	 */
-	@FunctionalInterface
-	public interface unwind_operation
-	{
-		public void operate(StackWalker.StackFrame stack_frame);
-	}
-
-	private static final StackWalker stack_walker;
-
-	static
-	{
-		stack_walker = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);// 最常用，最先初始化
-	}
-
-	/**
-	 * 栈回溯跳过此函数的注解
-	 */
-	@Retention(RetentionPolicy.RUNTIME)
-	@Target(
-	{ ElementType.METHOD, ElementType.CONSTRUCTOR })
-	public @interface skip_unwind
-	{
-	}
-
-	/**
-	 * 栈回溯<br>
-	 * 会跳过带有@skip_unwind注解的方法。<br>
-	 * 
-	 * @param skip_frame_count 跳过的栈帧数量
-	 * @return 得到的结果栈帧
-	 * @since Java 9
-	 */
-	@skip_unwind
-	public static final StackWalker.StackFrame unwind(int skip_frame_count)
-	{
-		return stack_walker.walk(stack ->
-		{
-			int skipped_frame_count = 0;
-			// 跳过带有@skip_unwind注解的方法
-			Iterator<StackWalker.StackFrame> iterator = stack.skip(1).iterator();// 跳过当前方法
-			while (iterator.hasNext())
-			{
-				StackWalker.StackFrame frame = iterator.next();
-				if (is_unwind_skippable(frame))
-				{
-					continue;
-				}
-				if (skipped_frame_count == skip_frame_count)
-				{
-					return frame;
-				}
-				++skipped_frame_count;
-			}
-			return null;
-		});
-	}
-
-	/**
-	 * 判断是否有@skip_unwind注解
-	 * 
-	 * @param frame
-	 * @return
-	 */
-	public static final boolean is_unwind_skippable(StackWalker.StackFrame frame)
-	{
-		try
-		{
-			return frame.getDeclaringClass()
-					.getDeclaredMethod(frame.getMethodName(), frame.getMethodType().parameterArray())
-					.isAnnotationPresent(skip_unwind.class);
-		}
-		catch (Exception ex)
-		{
-			return false;
-		}
-	}
-
-	public static final boolean is_unwind_skippable(Method m)
-	{
-		return m.isAnnotationPresent(skip_unwind.class);
-	}
-
-	public static final boolean is_unwind_skippable(Constructor<?> c)
-	{
-		return c.isAnnotationPresent(skip_unwind.class);
-	}
-
-	@skip_unwind
-	public static final void unwind(int skip_frame_count, unwind_operation op)
-	{
-		op.operate(unwind(skip_frame_count));
-	}
-
-	@skip_unwind
-	public static final Class<?> unwind_class(int skip_frame_count)
-	{
-		return unwind(skip_frame_count).getDeclaringClass();
-	}
-
-	/**
-	 * 获取直接调用此函数的函数所属类
-	 * 
-	 * @return
-	 */
-	@skip_unwind
-	public static final Class<?> get_caller_class()
-	{
-		return unwind_class(0);
-	}
-
 	public class class_operation
 	{
 		/**
@@ -1737,7 +1636,7 @@ public abstract class reflection
 				 * @param value     字段值，无效则为null
 				 * @return 是否继续迭代，返回true代表继续迭代，false则终止迭代
 				 */
-				public boolean operate(Field f, boolean is_static, Class<?> genericType, _F value);
+				public boolean operate(Field f, boolean is_static, Class<?> generic_type, _F value);
 			}
 		}
 
@@ -1822,15 +1721,15 @@ public abstract class reflection
 		 * 
 		 * @param <_T>
 		 * @param clazz
-		 * @param targetType
+		 * @param target_type
 		 * @param op
 		 */
 		@SuppressWarnings("unchecked")
-		public static final <_T> void walk_fields(Object target, Class<_T> targetType, field_operation<_T> op)
+		public static final <_T> void walk_fields(Object target, Class<_T> target_type, field_operation<_T> op)
 		{
 			walk_fields(target, (Field f, boolean is_static, Object value) ->
 			{
-				if (reflection.is(f, targetType))
+				if (reflection.is(f, target_type))
 					return op.operate(f, is_static, (_T) value);
 				return true;
 			});
@@ -1858,9 +1757,9 @@ public abstract class reflection
 		 */
 		public static final <_F, _G> void walk_fields(Object target, Class<_F> field_type, Class<_G> single_generic_type, field_operation<_F> op)
 		{
-			walk_fields(target, field_type, (Field f, boolean is_static, Class<?> genericType, _F value) ->
+			walk_fields(target, field_type, (Field f, boolean is_static, Class<?> generic_type, _F value) ->
 			{
-				if (reflection.is(genericType, single_generic_type))
+				if (reflection.is(generic_type, single_generic_type))
 				{
 					return op.operate(f, is_static, (_F) value);
 				}

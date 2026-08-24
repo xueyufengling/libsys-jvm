@@ -2,6 +2,7 @@ package sys.jvm;
 
 import static sys.jvm.versions.jdk_versions;
 
+import java.lang.annotation.Native;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
@@ -21,17 +22,25 @@ import sys.jvm.reflection.reflection_factory;
 @SuppressWarnings("unchecked")
 public class symbols
 {
+	@Native
 	public static final int PUBLIC = Modifier.PUBLIC;
+	@Native
 	public static final int PRIVATE = Modifier.PRIVATE;
+	@Native
 	public static final int PROTECTED = Modifier.PROTECTED;
+	@Native
 	public static final int PACKAGE = Modifier.STATIC;
+	@Native
 	public static final int MODULE = PACKAGE << 1;
+	@Native
 	public static final int UNCONDITIONAL = PACKAGE << 2;
+	@Native
 	public static final int ORIGINAL = PACKAGE << 3;
-
+	@Native
 	public static final int ALL_MODES = (PUBLIC | PRIVATE | PROTECTED | PACKAGE | MODULE | UNCONDITIONAL | ORIGINAL);
+	@Native
 	public static final int FULL_POWER_MODES = (ALL_MODES & ~UNCONDITIONAL);
-
+	@Native
 	public static final int TRUSTED = -1;
 
 	static final MethodHandles.Lookup trusted_lookup;
@@ -360,35 +369,61 @@ public class symbols
 
 		static Class<?> java_lang_invoke_MethodHandleNatives_Constants;
 
-		public static final int MN_IS_METHOD,
-				MN_IS_CONSTRUCTOR,
-				MN_IS_FIELD,
-				MN_IS_TYPE,
-				MN_CALLER_SENSITIVE,
-				MN_TRUSTED_FINAL,
-				MN_REFERENCE_KIND_SHIFT,
-				MN_REFERENCE_KIND_MASK;
+		@Native
+		public static final int MN_IS_METHOD;
+		@Native
+		public static final int MN_IS_CONSTRUCTOR;
+		@Native
+		public static final int MN_IS_FIELD;
+		@Native
+		public static final int MN_IS_TYPE;
+		@Native
+		public static final int MN_CALLER_SENSITIVE;
+		@Native
+		public static final int MN_TRUSTED_FINAL;
+		@Native
+		public static final int MN_REFERENCE_KIND_SHIFT;
+		@Native
+		public static final int MN_REFERENCE_KIND_MASK;
 
-		public static final byte REF_NONE,
-				REF_getField,
-				REF_getStatic,
-				REF_putField,
-				REF_putStatic,
-				REF_invokeVirtual,
-				REF_invokeStatic,
-				REF_invokeSpecial,
-				REF_newInvokeSpecial,
-				REF_invokeInterface,
-				REF_LIMIT;
+		@Native
+		public static final byte REF_NONE;
+		@Native
+		public static final byte REF_getField;
+		@Native
+		public static final byte REF_getStatic;
+		@Native
+		public static final byte REF_putField;
+		@Native
+		public static final byte REF_putStatic;
+		@Native
+		public static final byte REF_invokeVirtual;
+		@Native
+		public static final byte REF_invokeStatic;
+		@Native
+		public static final byte REF_invokeSpecial;
+		@Native
+		public static final byte REF_newInvokeSpecial;
+		@Native
+		public static final byte REF_invokeInterface;
+		@Native
+		public static final byte REF_LIMIT;
 
-		public static final int NESTMATE_CLASS,
-				HIDDEN_CLASS,
-				STRONG_LOADER_LINK,
-				ACCESS_VM_ANNOTATIONS;
+		@Native
+		public static final int NESTMATE_CLASS;
+		@Native
+		public static final int HIDDEN_CLASS;
+		@Native
+		public static final int STRONG_LOADER_LINK;
+		@Native
+		public static final int ACCESS_VM_ANNOTATIONS;
 
-		public static final int LM_MODULE,
-				LM_UNCONDITIONAL,
-				LM_TRUSTED;
+		@Native
+		public static final int LM_MODULE;
+		@Native
+		public static final int LM_UNCONDITIONAL;
+		@Native
+		public static final int LM_TRUSTED;
 
 		static
 		{
@@ -552,31 +587,44 @@ public class symbols
 	 * java.lang.invoke.MemberName缓存MethodHandle的相关metadata。<br>
 	 * JVM的MethodHandle执行检查依赖于该类，修改目标MethodHandle的MemberName可以绕过检查。
 	 */
-
+	@Native
 	public static final int BRIDGE;
+	@Native
 	public static final int VARARGS;
+	@Native
 	public static final int SYNTHETIC;
+	@Native
 	public static final int ANNOTATION;
+	@Native
 	public static final int ENUM;
 
 	private static MethodHandle isBridge;
 	private static MethodHandle isVarargs;
 	private static MethodHandle isSynthetic;
 
+	@Native
 	public static final String INITIALIZER_NAME = "<clinit>";
+	@Native
 	public static final String CONSTRUCTOR_NAME;
-
+	@Native
 	public static final int RECOGNIZED_MODIFIERS;
-
-	public static final int IS_METHOD,
-			IS_CONSTRUCTOR,
-			IS_FIELD,
-			IS_TYPE,
-			CALLER_SENSITIVE,
-			TRUSTED_FINAL;
-
+	@Native
+	public static final int IS_METHOD;
+	@Native
+	public static final int IS_CONSTRUCTOR;
+	@Native
+	public static final int IS_FIELD;
+	@Native
+	public static final int IS_TYPE;
+	@Native
+	public static final int CALLER_SENSITIVE;
+	@Native
+	public static final int TRUSTED_FINAL;
+	@Native
 	public static final int ALL_ACCESS;
+	@Native
 	public static final int ALL_KINDS;
+	@Native
 	public static final int IS_INVOCABLE;
 
 	private static Class<?> java_lang_invoke_DirectMethodHandle;

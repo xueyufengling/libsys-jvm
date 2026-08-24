@@ -27,7 +27,7 @@ import java.util.jar.JarInputStream;
 import java.util.stream.Stream;
 
 import sys.jvm.arch.os;
-import sys.jvm.reflection.skip_unwind;
+import sys.jvm.stack.skip_unwind;
 
 public class file_system
 {
@@ -110,13 +110,13 @@ public class file_system
 	@skip_unwind
 	public static final String classpath()
 	{
-		return classpath(reflection.get_caller_class());
+		return classpath(stack.get_caller_class());
 	}
 
 	@skip_unwind
 	public static final String classpath(Function<String, String> path_resolver)
 	{
-		return classpath(reflection.get_caller_class(), path_resolver);
+		return classpath(stack.get_caller_class(), path_resolver);
 	}
 
 	/**
@@ -433,7 +433,7 @@ public class file_system
 	@skip_unwind
 	public static final byte[] resource_bytes(String path)
 	{
-		return resource_bytes(reflection.get_caller_class(), path);// 获取调用该方法的类
+		return resource_bytes(stack.get_caller_class(), path);// 获取调用该方法的类
 	}
 
 	public static final InputStream resource_stream(Class<?> any_class_in_jar, String path)
@@ -451,7 +451,7 @@ public class file_system
 	@skip_unwind
 	public static final InputStream resource_stream(String path)
 	{
-		return resource_stream(reflection.get_caller_class(), path);// 获取调用该方法的类
+		return resource_stream(stack.get_caller_class(), path);// 获取调用该方法的类
 	}
 
 	/**
